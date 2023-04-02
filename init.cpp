@@ -10,7 +10,7 @@
 
 using namespace std;
 
-const long FILE_SIZE = 256*2*512;
+const long FILE_SIZE = 32*1024*2*512;
 const long BLOCK_SIZE = 512;
 const long INODE_NUM = 100;
 const long INODE_SIZE = 64;
@@ -41,7 +41,6 @@ void init_superblock()
     /* 填写后续的空闲表 */
     int blkno = sb.s_inode[99];  //获取到接下来要填写的物理块号
     while(data_i < DATA_NUM) {
-        cout << "in block:" << blkno << " "<< data_i <<endl;
         char *p = data + blkno*BLOCK_SIZE;
         int *table = (int *)p;      // table就是新的空闲表的区域
         if(DATA_NUM - data_i > 100)
@@ -101,21 +100,17 @@ int main(int argc, char *argv[])
 {
     const char* file_path = "myDisk.img";
     int fd;
-    if(argc > 1) {
+    if(argc > 1) 
         fd = open(argv[1], O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    }
-    else {
+    else 
         fd = open(file_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    }
 
     if (fd < 0) {
         cerr << "Failed to open file " << file_path << endl;
         return 1;
-    }else {
-        cout << "start map "<< file_path << endl;
     }
-
-
+    else 
+        cout << "start map "<< file_path << endl;
 
     // 调整文件大小
     if (ftruncate(fd, FILE_SIZE) < 0) {
@@ -124,11 +119,8 @@ int main(int argc, char *argv[])
         return 1;
     }
     
-    
     //初始化superblock
     init_superblock();
-
-    
     
     int size = 0;
     /* 初次拷贝，superblock, inode ,部分data */
@@ -141,11 +133,8 @@ int main(int argc, char *argv[])
     if(DATA_SIZE - data_off > 0)
         size += map(fd, size, DATA_SIZE - data_off, copy_subseq);
 
-
-
     // 关闭文件
     close(fd);
-
     cout << "map disk done~~" << endl;
     return 0;
 }
