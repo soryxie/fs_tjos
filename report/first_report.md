@@ -103,16 +103,10 @@ close(fd);
 
 **在myDisk.img中检验：**
 
+<img src=".\first_report.assets\image-20230403153101808.png" alt="image-20230403155838193" style="zoom:50%;" />
 
+<img src=".\first_report.assets\image-20230403152859599.png" alt="image-20230403155838193" style="zoom:50%;" />
 
-![image-20230403153101808](.\first_report.assets\image-20230403153101808.png)
-
-
-
-![image-20230403152859599](.\first_report.assets\image-20230403152859599.png)
-
-
-
-![image-20230403153050452](.\first_report.assets\image-20230403153050452.png)
+<img src=".\first_report.assets\image-20230403153050452.png" alt="image-20230403155838193" style="zoom:50%;" />
 
 综上，数据完全一致，文件目录树也已建立。
