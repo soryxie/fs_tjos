@@ -7,7 +7,7 @@ SRCS=init.cpp init_dir.cpp
 
 OBJS=$(SRCS:.cpp=.o)
 
-DEPS=dinode.h sb.h 
+DEPS=dinode.h sb.h Directory.h init_dir.h parameter.h
 
 all: $(TARGET)
 	rm -f *.o

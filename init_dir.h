@@ -5,6 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <vector>
+#include <cstring>
+#include <iomanip>
 using namespace std;
 
-void scan_path(string path); 
+int scan_path(string path); 
