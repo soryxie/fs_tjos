@@ -24,7 +24,7 @@
 
 ### 组件说明
 
-<img src="C:\Users\XieSongRun\Desktop\v6++\报告：.assets\image-20230403155044218.png" alt="image-20230403155044218" style="zoom:50%;" />
+<img src=".\first_report.assets\image-20230403155044218.png" alt="image-20230403155044218" style="zoom:50%;" />
 
 **数据结构**
 
@@ -97,7 +97,7 @@ close(fd);
 
 **运行成功**
 
-<img src="C:\Users\XieSongRun\Desktop\v6++\报告：.assets\image-20230403155838193.png" alt="image-20230403155838193" style="zoom:50%;" />
+<img src=".\first_report.assets\image-20230403155838193.png" alt="image-20230403155838193" style="zoom:50%;" />
 
 
 
@@ -105,14 +105,14 @@ close(fd);
 
 
 
-![image-20230403153101808](C:\Users\XieSongRun\Desktop\v6++\报告：.assets\image-20230403153101808.png)
+![image-20230403153101808](.\first_report.assets\image-20230403153101808.png)
 
 
 
-![image-20230403152859599](C:\Users\XieSongRun\Desktop\v6++\报告：.assets\image-20230403152859599.png)
+![image-20230403152859599](.\first_report.assets\image-20230403152859599.png)
 
 
 
-![image-20230403153050452](C:\Users\XieSongRun\Desktop\v6++\报告：.assets\image-20230403153050452.png)
+![image-20230403153050452](.\first_report.assets\image-20230403153050452.png)
 
 综上，数据完全一致，文件目录树也已建立。
