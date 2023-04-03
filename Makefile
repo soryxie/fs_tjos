@@ -3,11 +3,11 @@ CFLAGS=-c -std=c++11
 
 TARGET=init
 
-SRCS=init.cpp dinode.cpp sb.cpp
+SRCS=init.cpp dinode.cpp sb.cpp init_dir.cpp
 
 OBJS=$(SRCS:.cpp=.o)
 
-DEPS=dinode.h sb.h
+DEPS=dinode.h sb.h 
 
 all: $(TARGET)
 	rm -f *.o

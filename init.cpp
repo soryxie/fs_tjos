@@ -1,5 +1,7 @@
-#include "sb.h"
-#include "dinode.h"
+#include "sb.h"          // superblock相关
+#include "dinode.h"      // inode相关
+#include "init_dir.h"    // 初始化目录
+#include "parameter.h"   // 所有全局const int变量
 #include <string>
 #include <iostream>
 #include <sys/mman.h>
@@ -9,17 +11,6 @@
 #include <cstring>
 
 using namespace std;
-
-const long FILE_SIZE = 32*1024*2*512;
-const long BLOCK_SIZE = 512;
-const long INODE_NUM = 100;
-const long INODE_SIZE = 64;
-const long OFFSET_SUPERBLOCK = 0;
-const long OFFSET_INODE = 2*BLOCK_SIZE;
-const long OFFSET_DATA = OFFSET_INODE+INODE_NUM*INODE_SIZE;
-const long DATA_SIZE = FILE_SIZE-OFFSET_DATA;
-const long DATA_NUM = DATA_SIZE/BLOCK_SIZE;
-
 
 SuperBlock sb;
 DiskInode inode[INODE_NUM];
@@ -75,7 +66,7 @@ void copy_subseq(char *addr) {
 }
 
 
-int map(int fd, int offset, int size, void(*fun)(char *)) {
+int map_img(int fd, int offset, int size, void(*fun)(char *)) {
     // 映射文件到内存中
     void *addr = mmap(NULL, size , PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
     if (addr == MAP_FAILED) {
@@ -122,16 +113,24 @@ int main(int argc, char *argv[])
     //初始化superblock
     init_superblock();
     
+    
+    /* 开始扫描文件 */
+    scan_path("./test_folder");
+
+
+    
     int size = 0;
     /* 初次拷贝，superblock, inode ,部分data */
-    size += map(fd, 0, 2*PAGE_SIZE, copy_first);
+    size += map_img(fd, 0, 2*PAGE_SIZE, copy_first);
 
     /* 从剩余data部分开始 */
     int data_off = 2*PAGE_SIZE - OFFSET_DATA;
     for(; data_off+PAGE_SIZE < DATA_SIZE; data_off+=PAGE_SIZE)
-        size += map(fd, size, PAGE_SIZE, copy_subseq);
+        size += map_img(fd, size, PAGE_SIZE, copy_subseq);
     if(DATA_SIZE - data_off > 0)
-        size += map(fd, size, DATA_SIZE - data_off, copy_subseq);
+        size += map_img(fd, size, DATA_SIZE - data_off, copy_subseq);
+
+
 
     // 关闭文件
     close(fd);
