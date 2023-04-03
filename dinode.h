@@ -1,8 +1,8 @@
 class DiskInode
 {
 public:
-	DiskInode();
-	~DiskInode();
+	DiskInode() {;};
+	~DiskInode() {;};
 public:
 	unsigned int d_mode;	/* 状态的标志位，定义见enum INodeFlag */
 	int		d_nlink;		/* 文件联结计数，即该文件在目录树中不同路径名的数量 ？？？*/

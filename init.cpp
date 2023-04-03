@@ -1,7 +1,7 @@
-#include "sb.h"          // superblockÏà¹Ø
-#include "dinode.h"      // inodeÏà¹Ø
-#include "init_dir.h"    // ³õÊ¼»¯Ä¿Â¼
-#include "parameter.h"   // ËùÓĞÈ«¾Öconst int±äÁ¿
+#include "sb.h"          // superblockç›¸å…³
+#include "dinode.h"      // inodeç›¸å…³
+#include "init_dir.h"    // åˆå§‹åŒ–ç›®å½•
+#include "parameter.h"   // æ‰€æœ‰å…¨å±€const intå˜é‡
 #include <string>
 #include <iostream>
 #include <sys/mman.h>
@@ -20,20 +20,20 @@ void init_superblock()
 {
     sb.s_isize = 12;
     sb.s_fsize = FILE_SIZE/BLOCK_SIZE;
-    /* ³õÊ¼»¯s_inode */
+    /* åˆå§‹åŒ–s_inode */
     for(int i=0; i<100&&i<INODE_NUM; i++)
         sb.s_inode[i] = i;
-    /* ³õÊ¼»¯data±í */
+    /* åˆå§‹åŒ–dataè¡¨ */
     int data_i = 0;
-    /* ÏÈÌîĞ´superblock±íµÄ¿ÕÏĞ±í */
+    /* å…ˆå¡«å†™superblockè¡¨çš„ç©ºé—²è¡¨ */
     for(int i=0; i<100&&data_i<DATA_NUM; i++)
         sb.s_inode[i] = data_i++;         //
     
-    /* ÌîĞ´ºóĞøµÄ¿ÕÏĞ±í */
-    int blkno = sb.s_inode[99];  //»ñÈ¡µ½½ÓÏÂÀ´ÒªÌîĞ´µÄÎïÀí¿éºÅ
+    /* å¡«å†™åç»­çš„ç©ºé—²è¡¨ */
+    int blkno = sb.s_inode[99];  //è·å–åˆ°æ¥ä¸‹æ¥è¦å¡«å†™çš„ç‰©ç†å—å·
     while(data_i < DATA_NUM) {
         char *p = data + blkno*BLOCK_SIZE;
-        int *table = (int *)p;      // table¾ÍÊÇĞÂµÄ¿ÕÏĞ±íµÄÇøÓò
+        int *table = (int *)p;      // tableå°±æ˜¯æ–°çš„ç©ºé—²è¡¨çš„åŒºåŸŸ
         if(DATA_NUM - data_i > 100)
             table[0] = 100;
         else 
@@ -54,7 +54,7 @@ void copy_data(char *addr, int size) {
     data_p += size;
 }
 
-const int PAGE_SIZE = 4*1024; // mmap ÏŞ¶¨4KB
+const int PAGE_SIZE = 4*1024; // mmap é™å®š4KB
 void copy_first(char *addr) {
     memcpy(addr, &sb, sizeof(sb));
     memcpy(addr+OFFSET_INODE, &inode[0], sizeof(inode));
@@ -67,7 +67,7 @@ void copy_subseq(char *addr) {
 
 
 int map_img(int fd, int offset, int size, void(*fun)(char *)) {
-    // Ó³ÉäÎÄ¼şµ½ÄÚ´æÖĞ
+    // æ˜ å°„æ–‡ä»¶åˆ°å†…å­˜ä¸­
     void *addr = mmap(NULL, size , PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
     if (addr == MAP_FAILED) {
         std::cerr << "Failed to mmap superblock " << std::endl;
@@ -77,7 +77,7 @@ int map_img(int fd, int offset, int size, void(*fun)(char *)) {
 
     fun((char *)addr);
 
-    // ½â³ıÄÚ´æÓ³Éä
+    // è§£é™¤å†…å­˜æ˜ å°„
     if (munmap(addr, size) < 0) {
         std::cerr << "Failed to munmap superblock " << std::endl;
         close(fd);
@@ -103,27 +103,27 @@ int main(int argc, char *argv[])
     else 
         cout << "start map "<< file_path << endl;
 
-    // µ÷ÕûÎÄ¼ş´óĞ¡
+    // è°ƒæ•´æ–‡ä»¶å¤§å°
     if (ftruncate(fd, FILE_SIZE) < 0) {
         cerr << "Failed to truncate file " << file_path << endl;
         close(fd);
         return 1;
     }
     
-    //³õÊ¼»¯superblock
+    //åˆå§‹åŒ–superblock
     init_superblock();
     
     
-    /* ¿ªÊ¼É¨ÃèÎÄ¼ş */
+    /* å¼€å§‹æ‰«ææ–‡ä»¶ */
     scan_path("./test_folder");
 
 
     
     int size = 0;
-    /* ³õ´Î¿½±´£¬superblock, inode ,²¿·Ödata */
+    /* åˆæ¬¡æ‹·è´ï¼Œsuperblock, inode ,éƒ¨åˆ†data */
     size += map_img(fd, 0, 2*PAGE_SIZE, copy_first);
 
-    /* ´ÓÊ£Óàdata²¿·Ö¿ªÊ¼ */
+    /* ä»å‰©ä½™dataéƒ¨åˆ†å¼€å§‹ */
     int data_off = 2*PAGE_SIZE - OFFSET_DATA;
     for(; data_off+PAGE_SIZE < DATA_SIZE; data_off+=PAGE_SIZE)
         size += map_img(fd, size, PAGE_SIZE, copy_subseq);
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
 
 
-    // ¹Ø±ÕÎÄ¼ş
+    // å…³é—­æ–‡ä»¶
     close(fd);
     cout << "map disk done~~" << endl;
     return 0;

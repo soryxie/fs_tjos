@@ -1,8 +1,8 @@
 class SuperBlock
 {
 public:
-	SuperBlock();
-	~SuperBlock();
+	SuperBlock() {;};
+	~SuperBlock() {;};
 	/* Members */
 public:
 	int		s_isize;		/* 外存Inode区占用的盘块数 */
