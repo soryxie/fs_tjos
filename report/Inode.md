@@ -252,7 +252,7 @@ void Inode::IUpdate(int time)
 
 
 
-### ITeunc 是法国inode对应文件占用的磁盘块
+### ITeunc 释放inode对应文件占用的磁盘块
 
 ```c++
 /* 采用FILO方式释放，以尽量使得SuperBlock中记录的空闲盘块号连续。
