@@ -1,0 +1,9 @@
+const long FILE_SIZE = 32*1024*2*512;
+const long BLOCK_SIZE = 512;
+const long INODE_NUM = 100;
+const long INODE_SIZE = 64;
+const long OFFSET_SUPERBLOCK = 0;
+const long OFFSET_INODE = 2*BLOCK_SIZE;
+const long OFFSET_DATA = OFFSET_INODE+INODE_NUM*INODE_SIZE;
+const long DATA_SIZE = FILE_SIZE-OFFSET_DATA;
+const long DATA_NUM = DATA_SIZE/BLOCK_SIZE;
