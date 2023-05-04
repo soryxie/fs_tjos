@@ -5,7 +5,7 @@ SRC_DIR=src
 TARGET=init client
 
 INIT_SRCS=$(SRC_DIR)/init.cpp $(SRC_DIR)/init_dir.cpp
-CLIENT_SRCS=$(SRC_DIR)/client.cpp $(SRC_DIR)/login.cpp
+CLIENT_SRCS=$(SRC_DIR)/client.cpp $(SRC_DIR)/login.cpp $(SRC_DIR)/fs.cpp
 
 INIT_OBJS=$(INIT_SRCS:.cpp=.o)
 CLIENT_OBJS=$(CLIENT_SRCS:.cpp=.o)
@@ -16,11 +16,11 @@ all: $(TARGET)
 
 init: $(INIT_OBJS)
 	$(CC) $(INIT_OBJS) -o init
-	rm -f ./src/init*.o
+	rm -f ./src/*.o
 
 client: $(CLIENT_OBJS)
 	$(CC) $(CLIENT_OBJS) -o client
-	rm -f ./src/client*.o	
+	rm -f ./src/*.o	
 
 #$(TARGET): $(INIT_OBJS) $(CLIENT_OBJS)
 #	$(CC) $(INIT_OBJS) -o init

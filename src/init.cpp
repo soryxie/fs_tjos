@@ -63,7 +63,7 @@ const int PAGE_SIZE = 4 * 1024; // mmap 限定4KB
 void copy_first(char *addr)
 {
     memcpy(addr, &sb, sizeof(sb));
-    memcpy(addr + OFFSET_INODE, &inode[0], sizeof(inode));
+    memcpy(addr + OFFSET_INODE, &inode[0], sizeof(inode[0])*INODE_NUM);
     copy_data(addr + OFFSET_DATA, 2 * PAGE_SIZE - OFFSET_DATA);
 }
 

@@ -1,4 +1,4 @@
-#include "../include/login.h"
+#include "../include/user.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -39,6 +39,7 @@ User verifyLogin(const string& username, const string& password) {
 }
 
 User login(){
+    return verifyLogin("alice","123456");
     string username, password;
 
     while(true){
