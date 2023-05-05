@@ -18,7 +18,7 @@ User verifyLogin(const string& username, const string& password) {
     // 读取文件中的用户信息
     while (!file.eof()) {
         User user;
-        file >> user.username >> user.password >> user.group;
+        file >> user.uid >> user.username >> user.password >> user.group;
         users.push_back(user);
     }
     file.close();

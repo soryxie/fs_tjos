@@ -20,11 +20,10 @@ Command commands[] = {
 
 int main() {
     User user = login();
+    user.set_current_dir(2);
 
     FileSystem fs("myDisk.img");
-    cout<<"inum="<<fs.sb.s_ninode<<endl;
-
-
+    fs.set_u(&user);
 
 
     while (true) {
