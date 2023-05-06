@@ -28,3 +28,4 @@ client: $(CLIENT_OBJS)
 clean:
 	rm -f $(OBJS) $(TARGET)
 	rm -f *.img
+	rm -f ./src/*.o

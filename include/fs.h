@@ -59,9 +59,8 @@ private:
     */
    
     /* 针对文件路径的查找：从给定路径查找对应文件的inode编号 否则返回-1 */
-    node_num find_from_rootpath(const std::string& path);
-   
-    
+    node_num find_from_path(const std::string& path);
+
 
 public:
     FileSystem() {};
@@ -78,6 +77,9 @@ public:
 
     bool createDir(const node_num dir, const std::string& dirname);
     //在dir目录下创建一个新目录
+
+    bool createRootDir();
+    // 创建根目录
 
     bool loadFile(const std::string& filename, const std::string& dst);
     //从文件系统中加载一个文件，将其复制到本地目录中

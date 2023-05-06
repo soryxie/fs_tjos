@@ -44,7 +44,7 @@ void init_command() {
 
 int main() {
     User user = login();
-    user.set_current_dir(2);
+    user.set_current_dir(1);
 
     FileSystem fs("myDisk.img");
     fs.set_u(&user);
@@ -70,8 +70,10 @@ int main() {
         }
 
         if(tokens[0] == "init"){
-            if(fs.initialize_from_external_directory(tokens[1]) == false)
+            cout<<"init"<<endl;
+            if(fs.initialize_from_external_directory(tokens[1]) == false) {
                 cout << "Initialize failed!" << endl;
+            }
         }
         /*else if(tokens[0] == "ls"){
             fs.listDir();

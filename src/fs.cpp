@@ -356,7 +356,48 @@ bool FileSystem::createDir(const node_num dir, const std::string& dirname) {
     return true;
 }
 
-node_num FileSystem::find_from_rootpath(const string& path) {
+bool FileSystem::createRootDir() {
+    // 先创建一个文件， 类型设置为目录
+    node_num ino = 1;
+
+    // 目录文件创建需要自带 . 和 ..
+    DirectoryEntry dotEntry(ino, ".", DirectoryEntry::FileType::Directory);
+    DirectoryEntry dotDotEntry(ino, "..", DirectoryEntry::FileType::Directory);
+    
+    block_num blkno = alloc_block();
+    buffer* blockBuf = read_block(blkno);
+    if (blockBuf == nullptr) {
+        std::cerr << "Error: Failed to read block." << std::endl;
+        return false;
+    }
+    memcpy(blockBuf, &dotEntry, ENTRY_SIZE);
+    memcpy(blockBuf + ENTRY_SIZE, &dotDotEntry, ENTRY_SIZE);
+    if (!write_block(blkno, blockBuf)) {
+        std::cerr << "Error: Failed to write block." << std::endl;
+        return false;
+    }
+
+    // 更新inode和superblock
+    inodes[ino].d_mtime = get_cur_time();
+    inodes[ino].d_size = ENTRY_SIZE * 2;
+    sb.s_time = get_cur_time();
+
+    return true;
+}
+
+node_num FileSystem::find_from_path(const string& path) {
+    int ino;    // 起始查询的目录INode号
+    if(path.empty()){
+        cerr << "error path!" << endl;
+        return -1;
+    }
+    else {      // 判断是相对路径还是绝对路径
+        if(path[0] == '/')
+            ino = ROOT_INO;         
+        else
+            ino = user_->current_dir_;
+    }
+
     // 重新解析Path
     std::vector<std::string> tokens;
     std::istringstream iss(path);
@@ -366,9 +407,6 @@ node_num FileSystem::find_from_rootpath(const string& path) {
             tokens.push_back(token);
         }
     }
-
-    // 从根目录开始查找
-    int ino = ROOT_INO;
 
     // 依次查找每一级目录或文件
     for (const auto& token : tokens) {
@@ -408,10 +446,16 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     }
 
     // 找到目标目录的inode编号
-    node_num dir = find_from_rootpath(filename.substr(0, filename.rfind('/')));
-    if (dir == -1) {
-        std::cerr << "Failed to find directory: " << filename.substr(0, filename.rfind('/')) << std::endl;
-        return false;
+    node_num dir;
+    
+    if(filename.rfind('/') == -1)
+        dir = user_->current_dir_;
+    else {
+        dir = find_from_path(filename.substr(0, filename.rfind('/')));
+        if (dir == -1) {
+            std::cerr << "Failed to find directory: " << filename.substr(0, filename.rfind('/')) << std::endl;
+            return false;
+        }
     }
 
     // 在目标目录下创建新文件
@@ -477,13 +521,16 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
 
 bool FileSystem::initialize_from_external_directory(const string& path, const node_num root_no)
 {
+    if(root_no == 1 && createRootDir() == false){
+        cerr << "create root dir failed!" << endl;
+        return false;
+    }
+
     int dir_file_ino = 0;
     DIR *pDIR = opendir((path + '/').c_str());
     dirent *pdirent = NULL;
     if (pDIR != NULL)
     {
-        ostringstream dir_data;
-
         cout << "在目录" << path << "下：" << endl;
         while ((pdirent = readdir(pDIR)) != NULL)
         {
@@ -520,4 +567,3 @@ bool FileSystem::initialize_from_external_directory(const string& path, const no
     closedir(pDIR);
     return true;
 }
-

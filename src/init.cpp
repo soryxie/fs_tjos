@@ -20,8 +20,8 @@ void init_superblock()
     sb.s_fsize = FILE_SIZE / BLOCK_SIZE;
     /* 初始化s_inode */
     sb.s_ninode = INODE_NUM;
-    for (int i = 0; i < 100 && i < INODE_NUM; i++)
-        sb.s_inode[i] = i;
+    for (int i = 0; i < 98 && i < INODE_NUM; i++)
+        sb.s_inode[i] = i+2;
     /* 初始化data表 */
     int data_i = 0;
     /* 先填写superblock表的空闲表 */
@@ -41,8 +41,7 @@ void init_superblock()
             table[0] = DATA_NUM - data_i;
 
         cout << "表偏移量" << blkno * BLOCK_SIZE << " 长度 " << table[0]*sizeof(int) << endl;
-        for (int i = 1; i <= table[0]; i++)
-        {
+        for (int i = 1; i <= table[0]; i++) {
             table[i] = data_i++;
         }
         blkno = table[1];
