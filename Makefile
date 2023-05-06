@@ -16,11 +16,11 @@ all: $(TARGET)
 
 init: $(INIT_OBJS)
 	$(CC) $(INIT_OBJS) -o init
-#	rm -f ./src/*.o
+	rm -f ./src/*.o
 
 client: $(CLIENT_OBJS)
 	$(CC) $(CLIENT_OBJS) -o client
-#	rm -f ./src/*.o	
+	rm -f ./src/*.o	
 
 %.o: %.cpp $(DEPS)
 	$(CC) $(CFLAGS) $< -o $@
