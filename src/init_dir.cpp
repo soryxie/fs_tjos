@@ -1,7 +1,6 @@
 #include "../include/init_dir.h"
 #include "../include/sb.h"
 #include "../include/dinode.h"
-#include "../include/parameter.h"
 #include "../include/directory.h"
 
 extern SuperBlock sb;

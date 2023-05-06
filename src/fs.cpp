@@ -15,7 +15,7 @@ buffer inner_buf[BLOCK_SIZE];
 using namespace std;
 
 time_t get_cur_time() {
-    return chrono::system_clockto_time_t(chrono::system_clock::now());
+    return chrono::system_clock::to_time_t(chrono::system_clock::now());
 }
 
 FileSystem::FileSystem(const std::string& diskfile) {
@@ -76,7 +76,7 @@ block_num FileSystem::alloc_block() {
     if(sb.s_nfree <= 1) // free list 不足
     {
         // 换一张新表
-        buffer buf = read_block(sb.s_free[0]);
+        buffer* buf = read_block(sb.s_free[0]);
         int *table = reinterpret_cast<int *>(buf);
         sb.s_nfree = table[0];
         for(int i=0;i<sb.s_nfree;i++)
@@ -101,6 +101,7 @@ buffer* FileSystem::read_block(block_num blkno) {
 bool FileSystem::write_block(block_num blkno, buffer* buf) {
     disk_.seekg(blkno*BLOCK_SIZE, std::ios::beg);
     disk_.write(buf, sizeof(BLOCK_SIZE));
+    return true;
 }
 
 block_num FileSystem::translate_block(const DiskInode& inode, uint no) {
@@ -174,7 +175,7 @@ block_num FileSystem::file_add_block(DiskInode& inode) {
             // 分配一级索引表中指向二级索引表的物理块
             block_num blkno = alloc_block();
             first_level_table[first_level_no] = blkno;
-            write_block(inode.d_addr[8 + (block_idx / (128 * 128))], first_level_table );
+            write_block(inode.d_addr[8 + (block_idx / (128 * 128))], (buffer *)first_level_table );
             second_block = blkno;
         }
         block_num *second_level_table = (block_num *)read_block(second_block);
@@ -220,7 +221,7 @@ uint FileSystem::read(const DiskInode& inode, buffer* buf, uint size, uint offse
     return read_size;
 }
 
-uint FileSystem::write(const DiskInode& inode, const buffer* buf, uint size, uint offset) {
+uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offset) {
     if (offset + size > MAX_FILE_SIZE) {
         return 0;
     }
@@ -469,61 +470,54 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     inode.d_atime = get_cur_time();
     inode.d_nlink = 1;
 
+    infile.close();
+
     return true;
 }
 
-
-// 定义内部文件系统根目录的路径和外部文件系统目录的路径
-const std::string internal_root_path = "/root";
-
-bool FileSystem::initialize_from_external_directory(string external_root_path)
+bool FileSystem::initialize_from_external_directory(const string& path, const node_num root_no)
 {
-    // 首先检查外部文件系统目录是否存在
-    struct stat st;
-    if (stat(external_root_path.c_str(), &st) != 0)
+    int dir_file_ino = 0;
+    DIR *pDIR = opendir((path + '/').c_str());
+    dirent *pdirent = NULL;
+    if (pDIR != NULL)
     {
-        return false;
-    }
+        ostringstream dir_data;
 
-    // 然后遍历外部文件系统目录中的所有文件和子目录，并在内部文件系统中创建相应的文件和目录
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir(external_root_path.c_str())) != NULL)
-    {
-        while ((ent = readdir(dir)) != NULL)
+        cout << "在目录" << path << "下：" << endl;
+        while ((pdirent = readdir(pDIR)) != NULL)
         {
-            // 忽略特殊目录（"."和".."）
-            if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
-            {
+            string Name = pdirent->d_name;
+            if (Name == "." || Name == "..")
                 continue;
-            }
 
-            // 构造外部文件系统中文件或目录的完整路径
-            std::string external_file_path = external_root_path + "/" + ent->d_name;
 
-            // 检查文件或目录是否存在
-            struct stat st;
-            if (stat(external_file_path.c_str(), &st) != 0)
+            struct stat buf;
+            if (!lstat((path + '/' + Name).c_str(), &buf))
             {
-                continue;
-            }
-
-            // 如果是一个目录，则在内部文件系统中创建相应的目录
-            if (S_ISDIR(st.st_mode))
-            {
-                std::string internal_dir_path = internal_root_path + "/" + ent->d_name;
-                create_directory(internal_dir_path);
-            }
-            // 如果是一个普通文件，则在内部文件系统中创建相应的文件，并将外部文件中的内容复制到内部文件中
-            else if (S_ISREG(st.st_mode))
-            {
-                std::string internal_file_path = internal_root_path + "/" + ent->d_name;
-                std::ifstream external_file(external_file_path);
-                std::ofstream internal_file(internal_file_path);
-                internal_file << external_file.rdbuf();
+                int ino; // 获取文件的inode号
+                if (S_ISDIR(buf.st_mode))
+                {
+                    ino = createDir(root_no, Name);
+                    cout << "构造目录 " << Name << " 成功inode:" << dir_file_ino << endl;
+                    if(initialize_from_external_directory(path + '/' + Name, ino) == false){
+                        return false;
+                    }
+                }
+                else if (S_ISREG(buf.st_mode))
+                {
+                    cout << "普通文件：" << Name << endl;
+                    if(saveFile(path + '/' + Name, Name) == false)
+                        return false;
+                }
+                else
+                {
+                    cout << "其他文件：" << Name << endl;
+                }
             }
         }
-        closedir(dir);
     }
+    closedir(pDIR);
     return true;
 }
+

@@ -15,17 +15,17 @@ public:
     int get_current_dir() const { return current_dir_; }
 
     void add_to_file_table(int fd, int inum, int mode) {
-        OpenFile file = { fd, inum, mode, 0 };
-        file_table_.push_back(file);
+        //OpenFile file = { fd, inum, mode, 0 };
+        //file_table_.push_back(file);
     }
 
     void remove_from_file_table(int fd) {
-        for (auto it = file_table_.begin(); it != file_table_.end(); ++it) {
+        /*for (auto it = file_table_.begin(); it != file_table_.end(); ++it) {
             if (it->fd == fd) {
                 file_table_.erase(it);
                 break;
             }
-        }
+        }*/
     }
 
     int uid;
@@ -34,5 +34,5 @@ public:
     int group;
 //private:
     int current_dir_;
-    std::vector<OpenFile> file_table_;
+    //std::vector<OpenFile> file_table_;
 };

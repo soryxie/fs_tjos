@@ -1,7 +1,5 @@
 #include "../include/sb.h"        // superblock相关
 #include "../include/dinode.h"    // inode相关
-#include "../include/init_dir.h"  // 初始化目录
-#include "../include/parameter.h" // 所有全局const int变量
 #include <string>
 #include <iostream>
 #include <sys/mman.h>
@@ -14,7 +12,7 @@ using namespace std;
 
 SuperBlock sb;
 DiskInode inode[INODE_NUM];
-char data[DATA_SIZE];
+char disk_data[DATA_SIZE];
 
 void init_superblock()
 {
@@ -35,13 +33,14 @@ void init_superblock()
     int blkno = sb.s_free[0]; // 获取到接下来要填写的物理块号
     while (data_i < DATA_NUM)
     {
-        char *p = data + blkno * BLOCK_SIZE;
+        char *p = disk_data + blkno * BLOCK_SIZE;
         int *table = (int *)p; // table就是新的空闲表的区域
         if (DATA_NUM - data_i > 100)
             table[0] = 100;
         else
             table[0] = DATA_NUM - data_i;
 
+        cout << "表偏移量" << blkno * BLOCK_SIZE << " 长度 " << table[0]*sizeof(int) << endl;
         for (int i = 1; i <= table[0]; i++)
         {
             table[i] = data_i++;
@@ -55,7 +54,7 @@ void copy_data(char *addr, int size)
     static int data_p = 0;
     if (size >= DATA_SIZE - data_p)
         size = DATA_SIZE - data_p;
-    memcpy(addr, data + data_p, sizeof(char) * size);
+    memcpy(addr, disk_data + data_p, sizeof(char) * size);
     data_p += size;
 }
 
@@ -123,9 +122,6 @@ int main(int argc, char *argv[])
     // 初始化superblock
     init_superblock();
 
-    /* 开始扫描文件 */
-    scan_path("./test_folder");
-
     int size = 0;
     /* 初次拷贝，superblock, inode ,部分data */
     size += map_img(fd, 0, 2 * PAGE_SIZE, copy_first);
@@ -139,6 +135,6 @@ int main(int argc, char *argv[])
 
     // 关闭文件
     close(fd);
-    cout << "map disk done~~" << endl;
+    cout << "initialize disk done~~" << endl;
     return 0;
 }
