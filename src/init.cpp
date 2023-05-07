@@ -40,7 +40,7 @@ void init_superblock()
         else
             table[0] = DATA_NUM - data_i;
 
-        cout << "表偏移量" << blkno * BLOCK_SIZE << " 长度 " << table[0]*sizeof(int) << endl;
+        //cout << "表偏移量" << blkno * BLOCK_SIZE << " 长度 " << table[0]*sizeof(int) << endl;
         for (int i = 1; i <= table[0]; i++) {
             table[i] = data_i++;
         }

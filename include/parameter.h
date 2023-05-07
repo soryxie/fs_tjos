@@ -12,6 +12,7 @@ const long ENTRYS_PER_BLOCK = BLOCK_SIZE/ENTRY_SIZE;
 const long MAX_FILE_SIZE = 6 + 128*2 + 128*128*2;
 const long ROOT_INO = 1;  // ¸ùÄ¿Â¼µÄinodeºÅ
 
-typedef unsigned int node_num;
-typedef unsigned int block_num;
+typedef int node_num;
+typedef int block_num;
 typedef char buffer;
+#define FAIL -1

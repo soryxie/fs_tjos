@@ -18,6 +18,10 @@ time_t get_cur_time() {
     return chrono::system_clock::to_time_t(chrono::system_clock::now());
 }
 
+block_num end_block(unsigned int size) {
+    return (size + BLOCK_SIZE - 1)/BLOCK_SIZE;
+}
+
 FileSystem::FileSystem(const std::string& diskfile) {
     // r+w 打开磁盘文件
     std::fstream disk(diskfile, std::ios::in | std::ios::out | std::ios::binary);
@@ -33,7 +37,7 @@ FileSystem::FileSystem(const std::string& diskfile) {
 
     // 读取Inode 
     disk.seekg(OFFSET_INODE, std::ios::beg);
-    disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
+    disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*100);
 
     // 保存
     diskfile_ = diskfile;
@@ -65,8 +69,8 @@ node_num FileSystem::alloc_inode() {
     
     
     // 将Int型的时间变为可读
-    char* str_time = ctime((const time_t *)&inodes[ino].d_atime);
-    cout << "创建新的INode "<< ino <<", uid="<< inodes[ino].d_uid <<", gid="<< inodes[ino].d_gid <<", 创建时间"<< str_time << endl;
+    //char* str_time = ctime((const time_t *)&inodes[ino].d_atime);
+    //cout << "allocate new inode "<< ino <<", uid="<< inodes[ino].d_uid <<", gid="<< inodes[ino].d_gid <<", time="/*<< str_time*/ << endl;
 
     return ino;
 }
@@ -76,7 +80,8 @@ block_num FileSystem::alloc_block() {
     if(sb.s_nfree <= 1) // free list 不足
     {
         // 换一张新表
-        buffer* buf = read_block(sb.s_free[0]);
+        buffer buf[BLOCK_SIZE] = "";
+        read_block(sb.s_free[0], buf);
         int *table = reinterpret_cast<int *>(buf);
         sb.s_nfree = table[0];
         for(int i=0;i<sb.s_nfree;i++)
@@ -85,112 +90,152 @@ block_num FileSystem::alloc_block() {
     // 取一个块
     blkno = sb.s_free[--sb.s_nfree];
     if (blkno == 0) {
-        cout << "error : super_block empty" << endl;
-        return -1;
+        cout << "error : block list empty" << endl;
+        return FAIL;
     }
     return blkno;
 }
 
-buffer* FileSystem::read_block(block_num blkno) {
+bool FileSystem::read_block(block_num blkno, buffer* buf) {
     // 暂未实现缓存
-    disk_.seekg(blkno*BLOCK_SIZE, std::ios::beg);
-    disk_.read(inner_buf, sizeof(BLOCK_SIZE));
-    return inner_buf;
-}
-
-bool FileSystem::write_block(block_num blkno, buffer* buf) {
-    disk_.seekg(blkno*BLOCK_SIZE, std::ios::beg);
-    disk_.write(buf, sizeof(BLOCK_SIZE));
+    //cout << "read " << blkno << endl;
+    disk_.seekg(OFFSET_DATA + blkno*BLOCK_SIZE, std::ios::beg);
+    disk_.read(buf, BLOCK_SIZE);
     return true;
 }
 
-block_num FileSystem::translate_block(const DiskInode& inode, uint no) {
-    // 如果 block_num 大于文件大小或者超出文件系统范围，返回 -1
-    if (no >= inode.d_size/BLOCK_SIZE || no >= (6 + 2*128 + 2*128*128)) {
-        return -1;
-    }
-
-    /* 直接索引 */
-    if (no < 6) {           //直接返回对应位置的blkno
-        return inode.d_addr[no];
-    }
-
-    /* 一级索引 */
-    no -= 6;        
-    if (no < 128 * 2) {     // d_add[6 or 7], 512/sizeof(uint)=128
-        return ((block_num *)read_block(inode.d_addr[6 + (no/128)]))[no%128];
-    }
-
-    /* 二级索引 */
-    no -= 128 * 2;
-    block_num first_level_no = (no % (128*128)) / 128;
-    block_num second_block_no = ((block_num *)read_block(inode.d_addr[8 + (no/128*128)]))[first_level_no];
-    block_num second_level_no = no % 128;
-    return ((block_num *)read_block(second_block_no))[second_level_no];
+bool FileSystem::write_block(block_num blkno, buffer* buf) {
+    cout << "wrire " << blkno << endl;
+    disk_.seekg(OFFSET_DATA + blkno*BLOCK_SIZE, std::ios::beg);
+    disk_.write(buf, BLOCK_SIZE);
+    return true;
 }
 
-block_num FileSystem::file_add_block(DiskInode& inode) {
-    int block_idx = inode.d_size / BLOCK_SIZE; // 下一个物理块应该在哪个位置
-    int second_blocks = 128 * 128 * 2;
+block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool create) {
+    // 如果 block_num 大于文件大小或者超出文件系统范围，返回 -1
+    if (create == false && (block_idx > inode.d_size/BLOCK_SIZE || block_idx >= (6 + 2*128 + 2*128*128))) {
+        return FAIL;
+    }
 
     /* 直接索引 */
     if (block_idx < 6) {
-        block_num blkno = alloc_block();
-        inode.d_addr[block_idx] = blkno;
-        return blkno;
+        if(create){  // 此处需要新增
+            if(inode.d_addr[block_idx]) {  // 已有块，失败
+                cout << "block in " << block_idx << "already exist! is:" << inode.d_addr[block_idx] << endl;
+                //return FAIL;
+            }
+            else {                         // 分配
+                block_num blkno = alloc_block();
+                if(blkno == FAIL) return FAIL;
+                inode.d_addr[block_idx] = blkno;
+                cout << "file:" << (&inode - inodes)/sizeof(DiskInode) << " alloc " << blkno << endl;
+            }
+        }
+        return inode.d_addr[block_idx];
     }
 
     /* 一级索引 */
     block_idx -= 6;
     if (block_idx < 128 * 2) {
         // 是否需要先分配一级索引表的物理块
-        if (block_idx % 128 == 0) {
-            block_num blkno = alloc_block();
-            inode.d_addr[6 + (block_idx / 128)] = blkno;
+        if (inode.d_addr[6 + (block_idx / 128)] == 0) {
+            if(create) {
+                block_num blkno = alloc_block();
+                if(blkno == FAIL) return FAIL;
+                inode.d_addr[6 + (block_idx / 128)] = blkno;
+            }
+            else
+                return 0; // 试图索引不存在的块，失败
         }
 
-        // 更新一级索引表
-        block_num *first_level_table = (block_num *)read_block(inode.d_addr[6 + (block_idx / 128)]);
-        int offset = block_idx % 128;
-        block_num blkno = alloc_block();
-        first_level_table[offset] = blkno;
-        write_block(inode.d_addr[6 + (block_idx / 128)], (buffer *)first_level_table);
-        return blkno;
+        // 访问一级索引
+        buffer buf_1[BLOCK_SIZE] = "";
+        memset(buf_1, 1, BLOCK_SIZE);
+        block_num *first_level_table = reinterpret_cast<block_num *>(buf_1);
+        read_block(inode.d_addr[6 + (block_idx / 128)], buf_1);
+
+        int idx_in_ftable = block_idx % 128;
+        if( create ) {
+            if(first_level_table[idx_in_ftable] == 0) {
+                block_num blkno = alloc_block();
+                if(blkno == FAIL) return FAIL;
+                first_level_table[idx_in_ftable] = blkno;
+                write_block(inode.d_addr[6 + (block_idx / 128)], buf_1);
+            }
+            else {
+                cout << "block in " << block_idx << "already exist! is:" << first_level_table[idx_in_ftable] << endl;
+            }
+        }
+        return first_level_table[idx_in_ftable];
     }
 
     /* 二级索引 */
     block_idx -= 128 * 2;
     if (block_idx < 128 * 128 * 2) {
-        // 分配二级索引表的物理块
-        if (block_idx % (128 * 128) == 0) {
-            block_num blkno = alloc_block();
-            inode.d_addr[8 + (block_idx / (128 * 128))] = blkno;
+        // 是否需要先分配一级索引表的物理块
+        if (inode.d_addr[8 + (block_idx / (128 * 128))] == 0) {
+            if(create) {
+                block_num blkno = alloc_block();
+                if(blkno == FAIL) return FAIL;
+                inode.d_addr[8 + (block_idx / (128 * 128))] = blkno;
+            }
+            else
+                return 0; // 试图索引不存在的块，失败
         }
 
-        // 更新二级索引表
+        // 访问一级索引表
         block_num first_level_no = (block_idx % (128*128)) / 128;
-        block_num *first_level_table = (block_num *)read_block(inode.d_addr[8 + (block_idx / (128 * 128))]);
+
+        buffer buf_1[BLOCK_SIZE] = "";
+        block_num *first_level_table = reinterpret_cast<block_num *>(buf_1);
+        read_block(inode.d_addr[8 + (block_idx / (128 * 128))], buf_1);
+
+
         block_num second_block = first_level_table[first_level_no];
+        // 一级索引表中的对应项为空
         if (second_block == 0) {
-            // 分配一级索引表中指向二级索引表的物理块
-            block_num blkno = alloc_block();
-            first_level_table[first_level_no] = blkno;
-            write_block(inode.d_addr[8 + (block_idx / (128 * 128))], (buffer *)first_level_table );
-            second_block = blkno;
+            if( create ) {
+                // 分配一级索引表中指向二级索引表的物理块
+                block_num blkno = alloc_block();
+                if(blkno == FAIL) return FAIL;
+                first_level_table[first_level_no] = blkno;
+                write_block(inode.d_addr[8 + (block_idx / (128 * 128))], buf_1);
+                second_block = blkno;
+            }
+            else 
+                return 0;
         }
-        block_num *second_level_table = (block_num *)read_block(second_block);
-        int offset = block_idx % 128;
-        block_num blkno = alloc_block();
-        second_level_table[offset] = blkno;
-        write_block( second_block, (buffer *)second_level_table);
-        return blkno;
+
+        // 访问二级索引表
+        
+        buffer buf_2[BLOCK_SIZE] = "";
+        block_num *second_level_table = reinterpret_cast<block_num *>(buf_2);
+        read_block(second_block, buf_2);
+
+        int idx_in_stable = block_idx % 128;
+        if( create ) {
+            if(second_level_table[idx_in_stable] == 0) {
+                block_num blkno = alloc_block();
+                if( blkno == FAIL) return FAIL;
+                second_level_table[idx_in_stable] = blkno;
+                write_block( second_block, (buffer *)second_level_table);
+            }
+            else {
+                cout << "block in " << block_idx << "already exist! is:" << second_level_table[idx_in_stable] << endl;
+                //return FAIL;
+            }
+        }
+        return second_level_table[idx_in_stable];
     }
 
-    // 超出范围，返回-1
-    return -1;
+    // 超出范围，返回FAIL
+    return FAIL;
 }
 
-uint FileSystem::read(const DiskInode& inode, buffer* buf, uint size, uint offset) {
+/*
+* 使用了全局的Inner_buf
+*/
+uint FileSystem::read(DiskInode& inode, buffer* buf, uint size, uint offset) {
     if (offset >= inode.d_size) {
         return 0;
     }
@@ -204,13 +249,13 @@ uint FileSystem::read(const DiskInode& inode, buffer* buf, uint size, uint offse
     for (uint pos = offset; pos < offset + size;) {
         uint no = pos / BLOCK_SIZE;             //计算inode中的块编号
         uint block_offset = pos % BLOCK_SIZE;   //块内偏移
-        block_num blkno = translate_block(inode, no);
+        block_num blkno = file_idx_block(inode, no, false);
 
         if (blkno < 0)
             break;
 
         /* 读块 */
-        buffer *block = read_block(blkno);
+        read_block(blkno, inner_buf);
         /* 读取可能的最大部分 */
         uint block_read_size = std::min<uint>(BLOCK_SIZE - block_offset, size - read_size);
         memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
@@ -221,6 +266,9 @@ uint FileSystem::read(const DiskInode& inode, buffer* buf, uint size, uint offse
     return read_size;
 }
 
+/*
+* 使用了全局的Inner_buf
+*/
 uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offset) {
     if (offset + size > MAX_FILE_SIZE) {
         return 0;
@@ -231,23 +279,22 @@ uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offs
     for (uint pos = offset; pos < offset + size;) {
         uint no = pos / BLOCK_SIZE;             //计算inode中的块编号
         uint block_offset = pos % BLOCK_SIZE;   //块内偏移
-        block_num blkno = translate_block(inode, no);
+        block_num blkno = file_idx_block(inode, no, true);
 
         if (blkno < 0) {
-            // 如果块不存在，需要为文件添加一个新块
-            blkno = file_add_block(inode);
-            if (blkno < 0) {
-                // 添加新块失败，返回已经写入的字节数
-                return written_size;
-            }
+            // 添加新块失败，返回已经写入的字节数
+            return written_size;
         }
 
-        /* 写块 */
-        buffer *block = read_block(blkno);
         /* 写入可能的最大部分 */
         uint block_write_size = std::min<uint>(BLOCK_SIZE - block_offset, size - written_size);
+        
+        /* 是否读原本的内容 */
+        if(block_write_size < BLOCK_SIZE) // 要用到原本的内容
+            read_block(blkno, inner_buf);
+
         memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
-        write_block(blkno, block);
+        write_block(blkno, inner_buf);
         written_size += block_write_size;
         pos += block_write_size;
     }
@@ -256,7 +303,7 @@ uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offs
     if (offset + written_size > inode.d_size) {
         inode.d_size = offset + written_size;
     }
-    inode.d_mtime = time(NULL);
+    inode.d_mtime = get_cur_time();
 
     return written_size;
 }
@@ -268,7 +315,7 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
     DirectoryEntry *entry_table = (DirectoryEntry *)malloc(blocks * BLOCK_SIZE);
 
     if(entry_table == nullptr || read(inodes[dir], (buffer *)entry_table, inodes[dir].d_size, 0) == false) {
-        std::cerr << "createFile: read dirextory entries failed." << std::endl;
+        cerr << "createFile: read directory entries failed." << endl;
         free(entry_table);
         return -1;
     }
@@ -277,6 +324,7 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
     int entry_no, entry_num_max = blocks * ENTRYS_PER_BLOCK;
     for (entry_no = 0; entry_no < entry_num_max; entry_no++) {
         // 查同名
+        string tmp = entry_table[entry_no].m_name;
         if (entry_table[entry_no].m_ino && strcmp(entry_table[entry_no].m_name, filename.c_str()) == 0) {
             std::cerr << "createFile: File already exists." << std::endl;
             free(entry_table);
@@ -293,9 +341,10 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
     if (entry_no == entry_num_max) {
         blocks++;
 
-        block_num newblkno = file_add_block(inodes[dir]);
+        block_num newblkno = file_idx_block(inodes[dir], end_block(inodes[dir].d_size), true);
         entry_no = 0;
-        entry_table = reinterpret_cast<DirectoryEntry*>(read_block(newblkno));
+        buffer *buf = reinterpret_cast<buffer *>(entry_table);
+        read_block(newblkno, buf);
     }
 
     // 找到空闲的inode和数据块
@@ -305,26 +354,25 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
         return -1;
     }
 
-
     // 填入新entry 位置永远是table[no]
     entry_table[entry_no].m_ino = ino;
     strncpy(entry_table[entry_no].m_name, filename.c_str(), DirectoryEntry::DIRSIZ);
     entry_table[entry_no].m_type = type;
     // 写回只用写最后一块
     if(entry_no == 0)
-        write_block(translate_block(inodes[dir], blocks), (buffer *)entry_table); // 写回目录文件内容
+        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table); // 写回目录文件内容
     else 
-        write_block(translate_block(inodes[dir], blocks), (buffer *)entry_table + (blocks-1)*BLOCK_SIZE); // 写回目录文件内容
+        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table + (blocks-1)*BLOCK_SIZE); // 写回目录文件内容
 
     // 更新目录文件inode
     inodes[dir].d_size += ENTRY_SIZE;
-    inodes[dir].d_mtime = time(nullptr);
+    inodes[dir].d_mtime = get_cur_time();
 
     free(entry_table);
     return ino;
 }
 
-bool FileSystem::createDir(const node_num dir, const std::string& dirname) {
+node_num FileSystem::createDir(const node_num dir, const std::string& dirname) {
     // 先创建一个文件， 类型设置为目录
     node_num ino = createFile(dir, dirname, DirectoryEntry::FileType::Directory);
     if(ino == -1) {
@@ -336,12 +384,9 @@ bool FileSystem::createDir(const node_num dir, const std::string& dirname) {
     DirectoryEntry dotEntry(ino, ".", DirectoryEntry::FileType::Directory);
     DirectoryEntry dotDotEntry(dir, "..", DirectoryEntry::FileType::Directory);
     
-    block_num blkno = alloc_block();
-    buffer* blockBuf = read_block(blkno);
-    if (blockBuf == nullptr) {
-        std::cerr << "Error: Failed to read block." << std::endl;
-        return false;
-    }
+    block_num blkno = file_idx_block(inodes[ino], end_block(inodes[ino].d_size), true);
+    buffer blockBuf[BLOCK_SIZE] = "";
+
     memcpy(blockBuf, &dotEntry, ENTRY_SIZE);
     memcpy(blockBuf + ENTRY_SIZE, &dotDotEntry, ENTRY_SIZE);
     if (!write_block(blkno, blockBuf)) {
@@ -351,9 +396,10 @@ bool FileSystem::createDir(const node_num dir, const std::string& dirname) {
 
     // 更新inode和superblock
     inodes[ino].d_mtime = get_cur_time();
+    inodes[ino].d_size = ENTRY_SIZE * 2;
     sb.s_time = get_cur_time();
 
-    return true;
+    return ino;
 }
 
 bool FileSystem::createRootDir() {
@@ -364,12 +410,8 @@ bool FileSystem::createRootDir() {
     DirectoryEntry dotEntry(ino, ".", DirectoryEntry::FileType::Directory);
     DirectoryEntry dotDotEntry(ino, "..", DirectoryEntry::FileType::Directory);
     
-    block_num blkno = alloc_block();
-    buffer* blockBuf = read_block(blkno);
-    if (blockBuf == nullptr) {
-        std::cerr << "Error: Failed to read block." << std::endl;
-        return false;
-    }
+    block_num blkno = file_idx_block(inodes[ino], end_block(inodes[ino].d_size), true); 
+    buffer blockBuf[BLOCK_SIZE] = "";
     memcpy(blockBuf, &dotEntry, ENTRY_SIZE);
     memcpy(blockBuf + ENTRY_SIZE, &dotDotEntry, ENTRY_SIZE);
     if (!write_block(blkno, blockBuf)) {
@@ -415,7 +457,7 @@ node_num FileSystem::find_from_path(const string& path) {
         DirectoryEntry *entry_table = (DirectoryEntry *)malloc(inode.d_size);
 
         if(entry_table == nullptr || read(inode, (buffer *)entry_table, inode.d_size, 0) == false) {
-            std::cerr << "createFile: read dirextory entries failed." << std::endl;
+            std::cerr << "createFile: read directory entries failed." << std::endl;
             return -1;
         }
 
@@ -445,9 +487,8 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         return false;
     }
 
-    // 找到目标目录的inode编号
+    // 找到目标文件所在目录的inode编号
     node_num dir;
-    
     if(filename.rfind('/') == -1)
         dir = user_->current_dir_;
     else {
@@ -470,42 +511,29 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
 
     // 从文件读取并写入inode
     uint offset = 0;
-    char buf[BLOCK_SIZE];
+    char buf[BLOCK_SIZE] = "";
     while (infile) {
         infile.read(buf, BLOCK_SIZE);
         uint count = infile.gcount();
 
-        while (count > 0) {
-            // 找到当前偏移量所对应的物理块号
-            uint blockno = offset / BLOCK_SIZE;
-            block_num blkno = translate_block(inode, blockno);
+        uint blockno = offset / BLOCK_SIZE;
+        block_num blkno = file_idx_block(inode, blockno, true);
 
-            // 如果物理块不存在，则分配一个
-            if (blkno == 0) {
-                blkno = alloc_block();
-                if (blkno == 0) {
-                    std::cerr << "Failed to allocate block for file: " << filename << std::endl;
-                    return false;
-                }
-                inode.d_addr[blockno] = blkno;
-            }
 
-            // 读取物理块内容
-            char* block_buf = read_block(blkno);
+        // 写入数据
+        uint pos = offset % BLOCK_SIZE;
+        uint n = std::min(BLOCK_SIZE - pos, (long)count);
+        if(n < BLOCK_SIZE)
+            memset(buf+n, 0, BLOCK_SIZE - n);
 
-            // 写入数据
-            uint pos = offset % BLOCK_SIZE;
-            uint n = std::min(BLOCK_SIZE - pos, (long)count);
-            memcpy(block_buf + pos, buf + (infile.gcount() - count), n);
-            count -= n;
-            offset += n;
-
-            // 写入物理块
-            if (!write_block(blkno, block_buf)) {
-                std::cerr << "Failed to write block for file: " << filename << std::endl;
-                return false;
-            }
+        // 写入物理块
+        if (!write_block(blkno, buf)) {
+            std::cerr << "Failed to write block for file: " << filename << std::endl;
+            return false;
         }
+        
+        count -= n;
+        offset += n;
     }
 
     // 更新inode信息
@@ -526,12 +554,11 @@ bool FileSystem::initialize_from_external_directory(const string& path, const no
         return false;
     }
 
-    int dir_file_ino = 0;
     DIR *pDIR = opendir((path + '/').c_str());
     dirent *pdirent = NULL;
     if (pDIR != NULL)
     {
-        cout << "在目录" << path << "下：" << endl;
+        cout << "under " << path << ":" << endl;
         while ((pdirent = readdir(pDIR)) != NULL)
         {
             string Name = pdirent->d_name;
@@ -546,24 +573,65 @@ bool FileSystem::initialize_from_external_directory(const string& path, const no
                 if (S_ISDIR(buf.st_mode))
                 {
                     ino = createDir(root_no, Name);
-                    cout << "构造目录 " << Name << " 成功inode:" << dir_file_ino << endl;
+                    cout << "make folder: " << Name << " success! inode:" << ino << endl;
+
+                    /* 递归进入，需要递进用户目录 */
+                    user_->current_dir_ = ino;
                     if(initialize_from_external_directory(path + '/' + Name, ino) == false){
                         return false;
                     }
+                    user_->current_dir_ = root_no;
+
                 }
                 else if (S_ISREG(buf.st_mode))
                 {
-                    cout << "普通文件：" << Name << endl;
+                    cout << "normal file:" << Name << endl;
                     if(saveFile(path + '/' + Name, Name) == false)
                         return false;
                 }
                 else
                 {
-                    cout << "其他文件：" << Name << endl;
+                    cout << "other file" << Name << endl;
                 }
             }
         }
     }
     closedir(pDIR);
+    return true;
+}
+
+bool FileSystem::ls(const string& path) {
+    node_num path_no;
+    if(path.empty())
+        path_no = user_->current_dir_;
+    else
+        path_no = find_from_path(path);
+
+    if (path_no == -1) {
+        std::cerr << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
+        return false;
+    }
+
+    DiskInode inode = inodes[path_no];
+
+    DirectoryEntry *entry_table = (DirectoryEntry *)malloc(inode.d_size);
+    if (entry_table == nullptr  || read(inode, (buffer *)entry_table, inode.d_size, 0) == false) {
+        std::cerr << "ls: read directory entries failed." << std::endl;
+        return false;
+    }
+
+    int entry_no, entry_num = inode.d_size / ENTRY_SIZE;
+    for (entry_no = 0; entry_no < entry_num; entry_no++) {
+        if (entry_table[entry_no].m_ino) {
+            DiskInode child_inode = inodes[entry_table[entry_no].m_ino];
+            string name(entry_table[entry_no].m_name);
+            cout << name;
+            if (entry_table[entry_no].m_type == DirectoryEntry::FileType::Directory) {
+                cout << "/";
+            }
+            cout << endl;
+        }
+    }
+    free(entry_table);
     return true;
 }

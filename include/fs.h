@@ -14,8 +14,7 @@ private:
     std::fstream disk_;     // Disk file stream
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
-    DiskInode inodes[INODE_NUM];  // Inode table
-
+    DiskInode inodes[100];  // Inode table
 
 private:
     /*
@@ -29,7 +28,7 @@ private:
     block_num alloc_block();
 
     /* 获取一个物理块的所有内容，返回指向这片缓存的buffer(char *)类型 */
-    buffer* read_block(block_num blkno);
+    bool read_block(block_num blkno, buffer* buf);
     
     /* 写入一个物理块(全覆盖) */
     bool write_block(block_num blkno, buffer* buf);
@@ -42,14 +41,11 @@ private:
     * --------- 文件(inode)层 ------------
     */
 
-    /* 对于一个文件，找寻它索引的第no个数据块的blkno */
-    block_num translate_block(const DiskInode& inode, uint no);
-
-	/* 对于一个文件，在他的结尾添加新的空闲物理块，返回新的物理块号 */
-    block_num file_add_block(DiskInode& inode);
+	/* 对于一个文件，索引或者新增物理块 , 失败返回-1 ，未分配的块返回0*/
+    block_num file_idx_block(DiskInode& inode, uint block_idx, bool create);
 
     /* 系统内接口，针对文件的读：从偏移量处获取size大小的内容，返回读取长度 */
-    uint read(const DiskInode& inode, buffer* buf, uint size, uint offset);
+    uint read(DiskInode& inode, buffer* buf, uint size, uint offset);
 
     /* 系统内接口，针对文件的写：从偏移量处写入size大小的内容，返回写长度 */
     uint write(DiskInode& inode, const buffer* buf, uint size, uint offset);
@@ -75,7 +71,7 @@ public:
     node_num createFile(const node_num dir, const std::string& filename, DirectoryEntry::FileType type);
     //在dir目录下创建一个新文件
 
-    bool createDir(const node_num dir, const std::string& dirname);
+    node_num createDir(const node_num dir, const std::string& dirname);
     //在dir目录下创建一个新目录
 
     bool createRootDir();
@@ -114,7 +110,7 @@ public:
     bool changeDir(const std::string& dirname);
     //更改当前目录到指定目录
 
-    //bool listDir(std::vector<std::string>& files);
+    bool ls(const std::string& path);
     //获取当前目录下的所有文件和目录
 
     bool getFileInfo(const std::string& filename, DiskInode& ino);

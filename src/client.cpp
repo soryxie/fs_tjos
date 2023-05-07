@@ -70,15 +70,17 @@ int main() {
         }
 
         if(tokens[0] == "init"){
-            cout<<"init"<<endl;
             if(fs.initialize_from_external_directory(tokens[1]) == false) {
                 cout << "Initialize failed!" << endl;
             }
         }
-        /*else if(tokens[0] == "ls"){
-            fs.listDir();
+        else if(tokens[0] == "ls"){
+            if(tokens.size() > 2)
+                fs.ls(tokens[1]);
+            else    
+                fs.ls("");
         }
-        else if(tokens[0] == "mkdir"){
+        /* else if(tokens[0] == "mkdir"){
             fs.createDir(tokens[1]);
         }
         else if(tokens[0] == "cd"){
