@@ -1,12 +1,12 @@
 
-// ÓÃ»§ĞÅÏ¢
+// ç”¨æˆ·ä¿¡æ¯
 #include <string>
 
 struct OpenFile {
-    int fd;           // ÎÄ¼şÃèÊö·û
-    int inum;         // inodeºÅ
-    int mode;         // ´ò¿ª·½Ê½
-    int offset;       // µ±Ç°¶ÁĞ´Î»ÖÃ
+    int fd;           // æ–‡ä»¶æè¿°ç¬¦
+    int inum;         // inodeå·
+    int mode;         // æ‰“å¼€æ–¹å¼
+    int offset;       // å½“å‰è¯»å†™ä½ç½®
 };
 
 struct User {

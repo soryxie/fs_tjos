@@ -5,17 +5,17 @@
 #include <string>
 using namespace std;
 
-// ÑéÖ¤ÓÃ»§ÃûºÍÃÜÂëÊÇ·ñÕıÈ·
+// éªŒè¯ç”¨æˆ·åå’Œå¯†ç æ˜¯å¦æ­£ç¡®
 User verifyLogin(const string& username, const string& password) {
     vector<User> users;
 
-    // ´ò¿ª´æ´¢ÓÃ»§ÃûºÍÃÜÂëµÄÎÄ¼ş
+    // æ‰“å¼€å­˜å‚¨ç”¨æˆ·åå’Œå¯†ç çš„æ–‡ä»¶
     ifstream file("users.txt");
     if (!file.is_open()) {
-        return User(); // ·µ»ØÒ»¸ö¿ÕµÄ User ¶ÔÏó
+        return User(); // è¿”å›ä¸€ä¸ªç©ºçš„ User å¯¹è±¡
     }
 
-    // ¶ÁÈ¡ÎÄ¼şÖĞµÄÓÃ»§ĞÅÏ¢
+    // è¯»å–æ–‡ä»¶ä¸­çš„ç”¨æˆ·ä¿¡æ¯
     while (!file.eof()) {
         User user;
         file >> user.uid >> user.username >> user.password >> user.group;
@@ -23,19 +23,19 @@ User verifyLogin(const string& username, const string& password) {
     }
     file.close();
 
-    // ±éÀúÓÃ»§ÁĞ±í£¬²éÕÒÆ¥ÅäµÄÓÃ»§
+    // éå†ç”¨æˆ·åˆ—è¡¨ï¼ŒæŸ¥æ‰¾åŒ¹é…çš„ç”¨æˆ·
     for (int i = 0; i < users.size(); i++) {
         if (users[i].username == username) {
-            // ÑéÖ¤ÃÜÂëÊÇ·ñÕıÈ·
+            // éªŒè¯å¯†ç æ˜¯å¦æ­£ç¡®
             if (users[i].password == password) {
-                return users[i]; // ·µ»Ø°üº¬ÓÃ»§ĞÅÏ¢µÄ User ¶ÔÏó
+                return users[i]; // è¿”å›åŒ…å«ç”¨æˆ·ä¿¡æ¯çš„ User å¯¹è±¡
             }
             else {
-                return User(); // ·µ»ØÒ»¸ö¿ÕµÄ User ¶ÔÏó±íÊ¾ÃÜÂë´íÎó
+                return User(); // è¿”å›ä¸€ä¸ªç©ºçš„ User å¯¹è±¡è¡¨ç¤ºå¯†ç é”™è¯¯
             }
         }
     }
-    return User(); // ·µ»ØÒ»¸ö¿ÕµÄ User ¶ÔÏó±íÊ¾ÓÃ»§Ãû²»´æÔÚ
+    return User(); // è¿”å›ä¸€ä¸ªç©ºçš„ User å¯¹è±¡è¡¨ç¤ºç”¨æˆ·åä¸å­˜åœ¨
 }
 
 User login(){
@@ -43,13 +43,13 @@ User login(){
     string username, password;
 
     while(true){
-        // ÌáÊ¾ÓÃ»§ÊäÈëÓÃ»§ÃûºÍÃÜÂë
+        // æç¤ºç”¨æˆ·è¾“å…¥ç”¨æˆ·åå’Œå¯†ç 
         cout << "Username: ";
         getline(cin, username);
         cout << "Password: ";
         getline(cin, password);
 
-        // ÑéÖ¤µÇÂ¼ĞÅÏ¢
+        // éªŒè¯ç™»å½•ä¿¡æ¯
         User user = verifyLogin(username, password);
         if (user.username != "") {
             cout << "Login successful" << endl;

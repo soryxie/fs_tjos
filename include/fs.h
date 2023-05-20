@@ -18,19 +18,19 @@ private:
 
 private:
     /*
-    * --------- ÎïÀí²ã ------------
+    * --------- ç‰©ç†å±‚ ------------
     */
 
-    /* »ñÈ¡Ò»¸ö¿ÕÏĞinode£¬²¢³õ²½³õÊ¼»¯ */
+    /* è·å–ä¸€ä¸ªç©ºé—²inodeï¼Œå¹¶åˆæ­¥åˆå§‹åŒ– */
     node_num alloc_inode();
 
-    /* »ñÈ¡Ò»¸ö¿ÕÏĞÎïÀí¿é */
+    /* è·å–ä¸€ä¸ªç©ºé—²ç‰©ç†å— */
     block_num alloc_block();
 
-    /* »ñÈ¡Ò»¸öÎïÀí¿éµÄËùÓĞÄÚÈİ£¬·µ»ØÖ¸ÏòÕâÆ¬»º´æµÄbuffer(char *)ÀàĞÍ */
+    /* è·å–ä¸€ä¸ªç‰©ç†å—çš„æ‰€æœ‰å†…å®¹ï¼Œè¿”å›æŒ‡å‘è¿™ç‰‡ç¼“å­˜çš„buffer(char *)ç±»å‹ */
     bool read_block(block_num blkno, buffer* buf);
     
-    /* Ğ´ÈëÒ»¸öÎïÀí¿é(È«¸²¸Ç) */
+    /* å†™å…¥ä¸€ä¸ªç‰©ç†å—(å…¨è¦†ç›–) */
     bool write_block(block_num blkno, buffer* buf);
 
 
@@ -38,23 +38,23 @@ private:
 
 
     /*
-    * --------- ÎÄ¼ş(inode)²ã ------------
+    * --------- æ–‡ä»¶(inode)å±‚ ------------
     */
 
-	/* ¶ÔÓÚÒ»¸öÎÄ¼ş£¬Ë÷Òı»òÕßĞÂÔöÎïÀí¿é , Ê§°Ü·µ»Ø-1 £¬Î´·ÖÅäµÄ¿é·µ»Ø0*/
+	/* å¯¹äºä¸€ä¸ªæ–‡ä»¶ï¼Œç´¢å¼•æˆ–è€…æ–°å¢ç‰©ç†å— , å¤±è´¥è¿”å›-1 ï¼Œæœªåˆ†é…çš„å—è¿”å›0*/
     block_num file_idx_block(DiskInode& inode, uint block_idx, bool create);
 
-    /* ÏµÍ³ÄÚ½Ó¿Ú£¬Õë¶ÔÎÄ¼şµÄ¶Á£º´ÓÆ«ÒÆÁ¿´¦»ñÈ¡size´óĞ¡µÄÄÚÈİ£¬·µ»Ø¶ÁÈ¡³¤¶È */
+    /* ç³»ç»Ÿå†…æ¥å£ï¼Œé’ˆå¯¹æ–‡ä»¶çš„è¯»ï¼šä»åç§»é‡å¤„è·å–sizeå¤§å°çš„å†…å®¹ï¼Œè¿”å›è¯»å–é•¿åº¦ */
     uint read(DiskInode& inode, buffer* buf, uint size, uint offset);
 
-    /* ÏµÍ³ÄÚ½Ó¿Ú£¬Õë¶ÔÎÄ¼şµÄĞ´£º´ÓÆ«ÒÆÁ¿´¦Ğ´Èësize´óĞ¡µÄÄÚÈİ£¬·µ»ØĞ´³¤¶È */
+    /* ç³»ç»Ÿå†…æ¥å£ï¼Œé’ˆå¯¹æ–‡ä»¶çš„å†™ï¼šä»åç§»é‡å¤„å†™å…¥sizeå¤§å°çš„å†…å®¹ï¼Œè¿”å›å†™é•¿åº¦ */
     uint write(DiskInode& inode, const buffer* buf, uint size, uint offset);
 
     /*
-    * --------- Ä¿Â¼²ã ------------
+    * --------- ç›®å½•å±‚ ------------
     */
    
-    /* Õë¶ÔÎÄ¼şÂ·¾¶µÄ²éÕÒ£º´Ó¸ø¶¨Â·¾¶²éÕÒ¶ÔÓ¦ÎÄ¼şµÄinode±àºÅ ·ñÔò·µ»Ø-1 */
+    /* é’ˆå¯¹æ–‡ä»¶è·¯å¾„çš„æŸ¥æ‰¾ï¼šä»ç»™å®šè·¯å¾„æŸ¥æ‰¾å¯¹åº”æ–‡ä»¶çš„inodeç¼–å· å¦åˆ™è¿”å›-1 */
     node_num find_from_path(const std::string& path);
 
 
@@ -65,56 +65,56 @@ public:
 
     void set_u(User *u) {user_ = u;};
     
-    /* ½«Ò»¸öÍâ²¿ÎÄ¼şÏµÍ³Ä¿Â¼×÷ÎªÄÚ²¿ÎÄ¼şÏµÍ³µÄ¸ùÄ¿Â¼²¢³õÊ¼»¯ÎÄ¼şÏµÍ³µÄÄ¿Â¼ºÍÎÄ¼ş */
+    /* å°†ä¸€ä¸ªå¤–éƒ¨æ–‡ä»¶ç³»ç»Ÿç›®å½•ä½œä¸ºå†…éƒ¨æ–‡ä»¶ç³»ç»Ÿçš„æ ¹ç›®å½•å¹¶åˆå§‹åŒ–æ–‡ä»¶ç³»ç»Ÿçš„ç›®å½•å’Œæ–‡ä»¶ */
     bool initialize_from_external_directory(const std::string& external_root_path, const node_num root_no = 1);
     
     node_num createFile(const node_num dir, const std::string& filename, DirectoryEntry::FileType type);
-    //ÔÚdirÄ¿Â¼ÏÂ´´½¨Ò»¸öĞÂÎÄ¼ş
+    //åœ¨dirç›®å½•ä¸‹åˆ›å»ºä¸€ä¸ªæ–°æ–‡ä»¶
 
     node_num createDir(const node_num dir, const std::string& dirname);
-    //ÔÚdirÄ¿Â¼ÏÂ´´½¨Ò»¸öĞÂÄ¿Â¼
+    //åœ¨dirç›®å½•ä¸‹åˆ›å»ºä¸€ä¸ªæ–°ç›®å½•
 
     bool createRootDir();
-    // ´´½¨¸ùÄ¿Â¼
+    // åˆ›å»ºæ ¹ç›®å½•
 
     bool loadFile(const std::string& filename, const std::string& dst);
-    //´ÓÎÄ¼şÏµÍ³ÖĞ¼ÓÔØÒ»¸öÎÄ¼ş£¬½«Æä¸´ÖÆµ½±¾µØÄ¿Â¼ÖĞ
+    //ä»æ–‡ä»¶ç³»ç»Ÿä¸­åŠ è½½ä¸€ä¸ªæ–‡ä»¶ï¼Œå°†å…¶å¤åˆ¶åˆ°æœ¬åœ°ç›®å½•ä¸­
 
     bool saveFile(const std::string& src, const std::string& filename);
-    //½«±¾µØÎÄ¼ş¸´ÖÆµ½ÎÄ¼şÏµÍ³ÖĞ
+    //å°†æœ¬åœ°æ–‡ä»¶å¤åˆ¶åˆ°æ–‡ä»¶ç³»ç»Ÿä¸­
 
     bool deleteDir(const std::string& dirname);
-    //É¾³ıµ±Ç°Ä¿Â¼ÏÂµÄÖ¸¶¨Ä¿Â¼
+    //åˆ é™¤å½“å‰ç›®å½•ä¸‹çš„æŒ‡å®šç›®å½•
 
     bool deleteFile(const std::string& filename);
-    //É¾³ıµ±Ç°Ä¿Â¼ÏÂµÄÖ¸¶¨ÎÄ¼ş
+    //åˆ é™¤å½“å‰ç›®å½•ä¸‹çš„æŒ‡å®šæ–‡ä»¶
 
     bool openFile(const std::string& filename);
-    //ÔÚÓÃ»§´ò¿ªÎÄ¼ş±íÖĞÌí¼ÓÒ»¸öÎÄ¼ş£¬×¼±¸½øĞĞ¶ÁĞ´²Ù×÷
+    //åœ¨ç”¨æˆ·æ‰“å¼€æ–‡ä»¶è¡¨ä¸­æ·»åŠ ä¸€ä¸ªæ–‡ä»¶ï¼Œå‡†å¤‡è¿›è¡Œè¯»å†™æ“ä½œ
 
     bool closeFile(const std::string& filename);
-    //´ÓÓÃ»§´ò¿ªÎÄ¼ş±íÖĞÒÆ³ıÖ¸¶¨ÎÄ¼ş
+    //ä»ç”¨æˆ·æ‰“å¼€æ–‡ä»¶è¡¨ä¸­ç§»é™¤æŒ‡å®šæ–‡ä»¶
 
     bool readFile(const std::string& filename, char* buffer, int size, int offset);
-    //´ÓÖ¸¶¨ÎÄ¼şÖĞ¶ÁÈ¡Êı¾İµ½»º³åÇøÖĞ
+    //ä»æŒ‡å®šæ–‡ä»¶ä¸­è¯»å–æ•°æ®åˆ°ç¼“å†²åŒºä¸­
 
     bool writeFile(const std::string& filename, const char* buffer, int size, int offset);
-    //½«»º³åÇøÖĞµÄÊı¾İĞ´ÈëÖ¸¶¨ÎÄ¼şÖĞ
+    //å°†ç¼“å†²åŒºä¸­çš„æ•°æ®å†™å…¥æŒ‡å®šæ–‡ä»¶ä¸­
 
     bool moveFile(const std::string& src, const std::string& dst);
-    //½«Ò»¸öÎÄ¼ş´ÓÒ»¸öÄ¿Â¼ÒÆ¶¯µ½ÁíÒ»¸öÄ¿Â¼
+    //å°†ä¸€ä¸ªæ–‡ä»¶ä»ä¸€ä¸ªç›®å½•ç§»åŠ¨åˆ°å¦ä¸€ä¸ªç›®å½•
 
     bool renameFile(const std::string& filename, const std::string& newname);
-    //ĞŞ¸ÄÎÄ¼şÃû
+    //ä¿®æ”¹æ–‡ä»¶å
 
     bool changeDir(const std::string& dirname);
-    //¸ü¸Äµ±Ç°Ä¿Â¼µ½Ö¸¶¨Ä¿Â¼
+    //æ›´æ”¹å½“å‰ç›®å½•åˆ°æŒ‡å®šç›®å½•
 
     bool ls(const std::string& path);
-    //»ñÈ¡µ±Ç°Ä¿Â¼ÏÂµÄËùÓĞÎÄ¼şºÍÄ¿Â¼
+    //è·å–å½“å‰ç›®å½•ä¸‹çš„æ‰€æœ‰æ–‡ä»¶å’Œç›®å½•
 
     bool getFileInfo(const std::string& filename, DiskInode& ino);
-    //»ñÈ¡Ö¸¶¨ÎÄ¼şµÄÏêÏ¸ĞÅÏ¢£¬ÈçÎÄ¼ş´óĞ¡£¬´´½¨Ê±¼äµÈ
+    //è·å–æŒ‡å®šæ–‡ä»¶çš„è¯¦ç»†ä¿¡æ¯ï¼Œå¦‚æ–‡ä»¶å¤§å°ï¼Œåˆ›å»ºæ—¶é—´ç­‰
 
 
 

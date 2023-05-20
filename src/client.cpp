@@ -17,7 +17,7 @@ struct CommandInfo {
     int num_args;
     std::string help;
 
-    // ¹¹Ôìº¯Êı£¬ÓÃÓÚ³õÊ¼»¯ CommandInfo
+    // æ„é€ å‡½æ•°ï¼Œç”¨äºåˆå§‹åŒ– CommandInfo
     CommandInfo(HandlerFn handler, int num_args, const std::string& help_info)
         : Handler(handler), num_args(num_args), help(help) {}
 };
@@ -52,12 +52,12 @@ int main() {
 
 
     while (true) {
-        // ¶ÁÈ¡ÓÃ»§ÊäÈëµÄÃüÁî
+        // è¯»å–ç”¨æˆ·è¾“å…¥çš„å‘½ä»¤
         string input;
         cout << ">> ";
         std::getline(std::cin, input);
 
-        // ½âÎöÃüÁî
+        // è§£æå‘½ä»¤
         std::istringstream iss(input);
         string s;
         vector<std::string> tokens;
@@ -120,16 +120,16 @@ int main() {
 
 
         
-        // ÔÚÃüÁîÁĞ±íÖĞ²éÕÒ¶ÔÓ¦µÄÃüÁî
+        // åœ¨å‘½ä»¤åˆ—è¡¨ä¸­æŸ¥æ‰¾å¯¹åº”çš„å‘½ä»¤
         /*const auto& command_info = cmd.find(tokens[0]);
         if (command_info != cmd.end()) {
             const auto& command = command_info->second;
-            // ¼ì²éÃüÁî²ÎÊıÊıÁ¿ÊÇ·ñÕıÈ·
+            // æ£€æŸ¥å‘½ä»¤å‚æ•°æ•°é‡æ˜¯å¦æ­£ç¡®
             if (tokens.size() - 1 != command.num_args) {
                 std::cout << "Invalid number of arguments. Usage: " << command.help_info << std::endl;
                 continue;
             }
-            // Ö´ĞĞÃüÁî
+            // æ‰§è¡Œå‘½ä»¤
             if (command.num_args == 0) {
                 (fs.*command.handler)();
             } else if (command.num_args == 1) {

@@ -23,7 +23,7 @@ block_num end_block(unsigned int size) {
 }
 
 FileSystem::FileSystem(const std::string& diskfile) {
-    // r+w ´ò¿ª´ÅÅÌÎÄ¼ş
+    // r+w æ‰“å¼€ç£ç›˜æ–‡ä»¶
     std::fstream disk(diskfile, std::ios::in | std::ios::out | std::ios::binary);
 
     if (!disk) {
@@ -31,28 +31,28 @@ FileSystem::FileSystem(const std::string& diskfile) {
         exit(EXIT_FAILURE);
     }
 
-    // ¶ÁÈ¡superBlock
+    // è¯»å–superBlock
     disk.seekg(0, std::ios::beg);
     disk.read(reinterpret_cast<char*>(&sb), sizeof(SuperBlock));
 
-    // ¶ÁÈ¡Inode 
+    // è¯»å–Inode 
     disk.seekg(OFFSET_INODE, std::ios::beg);
     disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*100);
 
-    // ±£´æ
+    // ä¿å­˜
     diskfile_ = diskfile;
     disk_ = std::move(disk);
 }
 
 FileSystem::~FileSystem() {
-    // ±£´æÊı¾İ
+    // ä¿å­˜æ•°æ®
     disk_.seekp(0, std::ios::beg);
     disk_.write(reinterpret_cast<char*>(&sb), sizeof(SuperBlock));
 
     disk_.seekp(OFFSET_INODE, std::ios::beg);
     disk_.write(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
 
-    // ¹Ø±ÕÎÄ¼ş
+    // å…³é—­æ–‡ä»¶
     disk_.close();
 }
 
@@ -64,11 +64,11 @@ node_num FileSystem::alloc_inode() {
     inodes[ino].d_gid = user_->group;
     inodes[ino].d_nlink = 1;
 
-    // »ñÈ¡µ±Ç°Ê±¼äµÄUnixÊ±¼ä´Á
+    // è·å–å½“å‰æ—¶é—´çš„Unixæ—¶é—´æˆ³
     inodes[ino].d_atime = inodes[ino].d_mtime = get_cur_time();
     
     
-    // ½«IntĞÍµÄÊ±¼ä±äÎª¿É¶Á
+    // å°†Intå‹çš„æ—¶é—´å˜ä¸ºå¯è¯»
     //char* str_time = ctime((const time_t *)&inodes[ino].d_atime);
     //cout << "allocate new inode "<< ino <<", uid="<< inodes[ino].d_uid <<", gid="<< inodes[ino].d_gid <<", time="/*<< str_time*/ << endl;
 
@@ -77,9 +77,9 @@ node_num FileSystem::alloc_inode() {
 
 block_num FileSystem::alloc_block() {
     int blkno;
-    if(sb.s_nfree <= 1) // free list ²»×ã
+    if(sb.s_nfree <= 1) // free list ä¸è¶³
     {
-        // »»Ò»ÕÅĞÂ±í
+        // æ¢ä¸€å¼ æ–°è¡¨
         buffer buf[BLOCK_SIZE] = "";
         read_block(sb.s_free[0], buf);
         int *table = reinterpret_cast<int *>(buf);
@@ -87,7 +87,7 @@ block_num FileSystem::alloc_block() {
         for(int i=0;i<sb.s_nfree;i++)
             sb.s_free[i] = table[i+1];
     }
-    // È¡Ò»¸ö¿é
+    // å–ä¸€ä¸ªå—
     blkno = sb.s_free[--sb.s_nfree];
     if (blkno == 0) {
         cout << "error : block list empty" << endl;
@@ -97,7 +97,7 @@ block_num FileSystem::alloc_block() {
 }
 
 bool FileSystem::read_block(block_num blkno, buffer* buf) {
-    // ÔİÎ´ÊµÏÖ»º´æ
+    // æš‚æœªå®ç°ç¼“å­˜
     //cout << "read " << blkno << endl;
     disk_.seekg(OFFSET_DATA + blkno*BLOCK_SIZE, std::ios::beg);
     disk_.read(buf, BLOCK_SIZE);
@@ -112,19 +112,19 @@ bool FileSystem::write_block(block_num blkno, buffer* buf) {
 }
 
 block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool create) {
-    // Èç¹û block_num ´óÓÚÎÄ¼ş´óĞ¡»òÕß³¬³öÎÄ¼şÏµÍ³·¶Î§£¬·µ»Ø -1
+    // å¦‚æœ block_num å¤§äºæ–‡ä»¶å¤§å°æˆ–è€…è¶…å‡ºæ–‡ä»¶ç³»ç»ŸèŒƒå›´ï¼Œè¿”å› -1
     if (create == false && (block_idx > inode.d_size/BLOCK_SIZE || block_idx >= (6 + 2*128 + 2*128*128))) {
         return FAIL;
     }
 
-    /* Ö±½ÓË÷Òı */
+    /* ç›´æ¥ç´¢å¼• */
     if (block_idx < 6) {
-        if(create){  // ´Ë´¦ĞèÒªĞÂÔö
-            if(inode.d_addr[block_idx]) {  // ÒÑÓĞ¿é£¬Ê§°Ü
+        if(create){  // æ­¤å¤„éœ€è¦æ–°å¢
+            if(inode.d_addr[block_idx]) {  // å·²æœ‰å—ï¼Œå¤±è´¥
                 cout << "block in " << block_idx << "already exist! is:" << inode.d_addr[block_idx] << endl;
                 //return FAIL;
             }
-            else {                         // ·ÖÅä
+            else {                         // åˆ†é…
                 block_num blkno = alloc_block();
                 if(blkno == FAIL) return FAIL;
                 inode.d_addr[block_idx] = blkno;
@@ -134,10 +134,10 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
         return inode.d_addr[block_idx];
     }
 
-    /* Ò»¼¶Ë÷Òı */
+    /* ä¸€çº§ç´¢å¼• */
     block_idx -= 6;
     if (block_idx < 128 * 2) {
-        // ÊÇ·ñĞèÒªÏÈ·ÖÅäÒ»¼¶Ë÷Òı±íµÄÎïÀí¿é
+        // æ˜¯å¦éœ€è¦å…ˆåˆ†é…ä¸€çº§ç´¢å¼•è¡¨çš„ç‰©ç†å—
         if (inode.d_addr[6 + (block_idx / 128)] == 0) {
             if(create) {
                 block_num blkno = alloc_block();
@@ -145,10 +145,10 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
                 inode.d_addr[6 + (block_idx / 128)] = blkno;
             }
             else
-                return 0; // ÊÔÍ¼Ë÷Òı²»´æÔÚµÄ¿é£¬Ê§°Ü
+                return 0; // è¯•å›¾ç´¢å¼•ä¸å­˜åœ¨çš„å—ï¼Œå¤±è´¥
         }
 
-        // ·ÃÎÊÒ»¼¶Ë÷Òı
+        // è®¿é—®ä¸€çº§ç´¢å¼•
         buffer buf_1[BLOCK_SIZE] = "";
         memset(buf_1, 1, BLOCK_SIZE);
         block_num *first_level_table = reinterpret_cast<block_num *>(buf_1);
@@ -169,10 +169,10 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
         return first_level_table[idx_in_ftable];
     }
 
-    /* ¶ş¼¶Ë÷Òı */
+    /* äºŒçº§ç´¢å¼• */
     block_idx -= 128 * 2;
     if (block_idx < 128 * 128 * 2) {
-        // ÊÇ·ñĞèÒªÏÈ·ÖÅäÒ»¼¶Ë÷Òı±íµÄÎïÀí¿é
+        // æ˜¯å¦éœ€è¦å…ˆåˆ†é…ä¸€çº§ç´¢å¼•è¡¨çš„ç‰©ç†å—
         if (inode.d_addr[8 + (block_idx / (128 * 128))] == 0) {
             if(create) {
                 block_num blkno = alloc_block();
@@ -180,10 +180,10 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
                 inode.d_addr[8 + (block_idx / (128 * 128))] = blkno;
             }
             else
-                return 0; // ÊÔÍ¼Ë÷Òı²»´æÔÚµÄ¿é£¬Ê§°Ü
+                return 0; // è¯•å›¾ç´¢å¼•ä¸å­˜åœ¨çš„å—ï¼Œå¤±è´¥
         }
 
-        // ·ÃÎÊÒ»¼¶Ë÷Òı±í
+        // è®¿é—®ä¸€çº§ç´¢å¼•è¡¨
         block_num first_level_no = (block_idx % (128*128)) / 128;
 
         buffer buf_1[BLOCK_SIZE] = "";
@@ -192,10 +192,10 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
 
 
         block_num second_block = first_level_table[first_level_no];
-        // Ò»¼¶Ë÷Òı±íÖĞµÄ¶ÔÓ¦ÏîÎª¿Õ
+        // ä¸€çº§ç´¢å¼•è¡¨ä¸­çš„å¯¹åº”é¡¹ä¸ºç©º
         if (second_block == 0) {
             if( create ) {
-                // ·ÖÅäÒ»¼¶Ë÷Òı±íÖĞÖ¸Ïò¶ş¼¶Ë÷Òı±íµÄÎïÀí¿é
+                // åˆ†é…ä¸€çº§ç´¢å¼•è¡¨ä¸­æŒ‡å‘äºŒçº§ç´¢å¼•è¡¨çš„ç‰©ç†å—
                 block_num blkno = alloc_block();
                 if(blkno == FAIL) return FAIL;
                 first_level_table[first_level_no] = blkno;
@@ -206,7 +206,7 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
                 return 0;
         }
 
-        // ·ÃÎÊ¶ş¼¶Ë÷Òı±í
+        // è®¿é—®äºŒçº§ç´¢å¼•è¡¨
         
         buffer buf_2[BLOCK_SIZE] = "";
         block_num *second_level_table = reinterpret_cast<block_num *>(buf_2);
@@ -228,12 +228,12 @@ block_num FileSystem::file_idx_block(DiskInode& inode, uint block_idx, bool crea
         return second_level_table[idx_in_stable];
     }
 
-    // ³¬³ö·¶Î§£¬·µ»ØFAIL
+    // è¶…å‡ºèŒƒå›´ï¼Œè¿”å›FAIL
     return FAIL;
 }
 
 /*
-* Ê¹ÓÃÁËÈ«¾ÖµÄInner_buf
+* ä½¿ç”¨äº†å…¨å±€çš„Inner_buf
 */
 uint FileSystem::read(DiskInode& inode, buffer* buf, uint size, uint offset) {
     if (offset >= inode.d_size) {
@@ -247,16 +247,16 @@ uint FileSystem::read(DiskInode& inode, buffer* buf, uint size, uint offset) {
     uint read_size = 0;
 
     for (uint pos = offset; pos < offset + size;) {
-        uint no = pos / BLOCK_SIZE;             //¼ÆËãinodeÖĞµÄ¿é±àºÅ
-        uint block_offset = pos % BLOCK_SIZE;   //¿éÄÚÆ«ÒÆ
+        uint no = pos / BLOCK_SIZE;             //è®¡ç®—inodeä¸­çš„å—ç¼–å·
+        uint block_offset = pos % BLOCK_SIZE;   //å—å†…åç§»
         block_num blkno = file_idx_block(inode, no, false);
 
         if (blkno < 0)
             break;
 
-        /* ¶Á¿é */
+        /* è¯»å— */
         read_block(blkno, inner_buf);
-        /* ¶ÁÈ¡¿ÉÄÜµÄ×î´ó²¿·Ö */
+        /* è¯»å–å¯èƒ½çš„æœ€å¤§éƒ¨åˆ† */
         uint block_read_size = std::min<uint>(BLOCK_SIZE - block_offset, size - read_size);
         memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
         read_size += block_read_size;
@@ -267,7 +267,7 @@ uint FileSystem::read(DiskInode& inode, buffer* buf, uint size, uint offset) {
 }
 
 /*
-* Ê¹ÓÃÁËÈ«¾ÖµÄInner_buf
+* ä½¿ç”¨äº†å…¨å±€çš„Inner_buf
 */
 uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offset) {
     if (offset + size > MAX_FILE_SIZE) {
@@ -277,20 +277,20 @@ uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offs
     uint written_size = 0;
 
     for (uint pos = offset; pos < offset + size;) {
-        uint no = pos / BLOCK_SIZE;             //¼ÆËãinodeÖĞµÄ¿é±àºÅ
-        uint block_offset = pos % BLOCK_SIZE;   //¿éÄÚÆ«ÒÆ
+        uint no = pos / BLOCK_SIZE;             //è®¡ç®—inodeä¸­çš„å—ç¼–å·
+        uint block_offset = pos % BLOCK_SIZE;   //å—å†…åç§»
         block_num blkno = file_idx_block(inode, no, true);
 
         if (blkno < 0) {
-            // Ìí¼ÓĞÂ¿éÊ§°Ü£¬·µ»ØÒÑ¾­Ğ´ÈëµÄ×Ö½ÚÊı
+            // æ·»åŠ æ–°å—å¤±è´¥ï¼Œè¿”å›å·²ç»å†™å…¥çš„å­—èŠ‚æ•°
             return written_size;
         }
 
-        /* Ğ´Èë¿ÉÄÜµÄ×î´ó²¿·Ö */
+        /* å†™å…¥å¯èƒ½çš„æœ€å¤§éƒ¨åˆ† */
         uint block_write_size = std::min<uint>(BLOCK_SIZE - block_offset, size - written_size);
         
-        /* ÊÇ·ñ¶ÁÔ­±¾µÄÄÚÈİ */
-        if(block_write_size < BLOCK_SIZE) // ÒªÓÃµ½Ô­±¾µÄÄÚÈİ
+        /* æ˜¯å¦è¯»åŸæœ¬çš„å†…å®¹ */
+        if(block_write_size < BLOCK_SIZE) // è¦ç”¨åˆ°åŸæœ¬çš„å†…å®¹
             read_block(blkno, inner_buf);
 
         memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
@@ -299,7 +299,7 @@ uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offs
         pos += block_write_size;
     }
 
-    // ¸üĞÂinodeµÄÎÄ¼ş´óĞ¡ºÍ×îºóĞŞ¸ÄÊ±¼ä
+    // æ›´æ–°inodeçš„æ–‡ä»¶å¤§å°å’Œæœ€åä¿®æ”¹æ—¶é—´
     if (offset + written_size > inode.d_size) {
         inode.d_size = offset + written_size;
     }
@@ -309,9 +309,9 @@ uint FileSystem::write(DiskInode& inode, const buffer* buf, uint size, uint offs
 }
 
 node_num FileSystem::createFile(const node_num dir, const std::string& filename, DirectoryEntry::FileType type=DirectoryEntry::FileType::RegularFile) {
-    // ¿ª±Ù¿Õ¼ä£¬²¢¶ÁÈ¡ËùÓĞÄ¿Â¼Ïî£¬ÕâÀïÔ¤¶ÁÁË×îºóÒ»¸ñÎïÀí¿éµÄËùÓĞ¿Õ¼ä
+    // å¼€è¾Ÿç©ºé—´ï¼Œå¹¶è¯»å–æ‰€æœ‰ç›®å½•é¡¹ï¼Œè¿™é‡Œé¢„è¯»äº†æœ€åä¸€æ ¼ç‰©ç†å—çš„æ‰€æœ‰ç©ºé—´
     uint blocks = (inodes[dir].d_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    // ×ª»¯³ÉÒ»¸öÍêÕûµÄvector
+    // è½¬åŒ–æˆä¸€ä¸ªå®Œæ•´çš„vector
     DirectoryEntry *entry_table = (DirectoryEntry *)malloc(blocks * BLOCK_SIZE);
 
     if(entry_table == nullptr || read(inodes[dir], (buffer *)entry_table, inodes[dir].d_size, 0) == false) {
@@ -320,10 +320,10 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
         return -1;
     }
 
-    // ±éÀúËùÓĞÄ¿Â¼Ïî
+    // éå†æ‰€æœ‰ç›®å½•é¡¹
     int entry_no, entry_num_max = blocks * ENTRYS_PER_BLOCK;
     for (entry_no = 0; entry_no < entry_num_max; entry_no++) {
-        // ²éÍ¬Ãû
+        // æŸ¥åŒå
         string tmp = entry_table[entry_no].m_name;
         if (entry_table[entry_no].m_ino && strcmp(entry_table[entry_no].m_name, filename.c_str()) == 0) {
             std::cerr << "createFile: File already exists." << std::endl;
@@ -331,13 +331,13 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
             return -1;
         }
 
-        // Èç¹ûµ½½áÎ²£¬Ìø³öÑ­»·
+        // å¦‚æœåˆ°ç»“å°¾ï¼Œè·³å‡ºå¾ªç¯
         if (entry_table[entry_no].m_ino == 0) 
             break;
     }
 
-    // Ä¿Â¼ÎÄ¼şÒÑÂú£¬ĞèÒª·ÖÅäĞÂµÄÊı¾İ¿é
-    // Ô­Òò£¬ÕâÀïµÄentry_num_maxÖ¸µÄÊÇµ±Ç°ËùÓĞÒÑÉêÇëµÄÎïÀí¿éÄÜ·ÅÏÂµÄ×î¶àentryÊı
+    // ç›®å½•æ–‡ä»¶å·²æ»¡ï¼Œéœ€è¦åˆ†é…æ–°çš„æ•°æ®å—
+    // åŸå› ï¼Œè¿™é‡Œçš„entry_num_maxæŒ‡çš„æ˜¯å½“å‰æ‰€æœ‰å·²ç”³è¯·çš„ç‰©ç†å—èƒ½æ”¾ä¸‹çš„æœ€å¤šentryæ•°
     if (entry_no == entry_num_max) {
         blocks++;
 
@@ -347,24 +347,24 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
         read_block(newblkno, buf);
     }
 
-    // ÕÒµ½¿ÕÏĞµÄinodeºÍÊı¾İ¿é
+    // æ‰¾åˆ°ç©ºé—²çš„inodeå’Œæ•°æ®å—
     node_num ino = alloc_inode();
     if (ino == 0) {
         std::cerr << "createFile: No free inode" << std::endl;
         return -1;
     }
 
-    // ÌîÈëĞÂentry Î»ÖÃÓÀÔ¶ÊÇtable[no]
+    // å¡«å…¥æ–°entry ä½ç½®æ°¸è¿œæ˜¯table[no]
     entry_table[entry_no].m_ino = ino;
     strncpy(entry_table[entry_no].m_name, filename.c_str(), DirectoryEntry::DIRSIZ);
     entry_table[entry_no].m_type = type;
-    // Ğ´»ØÖ»ÓÃĞ´×îºóÒ»¿é
+    // å†™å›åªç”¨å†™æœ€åä¸€å—
     if(entry_no == 0)
-        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table); // Ğ´»ØÄ¿Â¼ÎÄ¼şÄÚÈİ
+        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table); // å†™å›ç›®å½•æ–‡ä»¶å†…å®¹
     else 
-        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table + (blocks-1)*BLOCK_SIZE); // Ğ´»ØÄ¿Â¼ÎÄ¼şÄÚÈİ
+        write_block(file_idx_block(inodes[dir], blocks - 1, false), (buffer *)entry_table + (blocks-1)*BLOCK_SIZE); // å†™å›ç›®å½•æ–‡ä»¶å†…å®¹
 
-    // ¸üĞÂÄ¿Â¼ÎÄ¼şinode
+    // æ›´æ–°ç›®å½•æ–‡ä»¶inode
     inodes[dir].d_size += ENTRY_SIZE;
     inodes[dir].d_mtime = get_cur_time();
 
@@ -373,14 +373,14 @@ node_num FileSystem::createFile(const node_num dir, const std::string& filename,
 }
 
 node_num FileSystem::createDir(const node_num dir, const std::string& dirname) {
-    // ÏÈ´´½¨Ò»¸öÎÄ¼ş£¬ ÀàĞÍÉèÖÃÎªÄ¿Â¼
+    // å…ˆåˆ›å»ºä¸€ä¸ªæ–‡ä»¶ï¼Œ ç±»å‹è®¾ç½®ä¸ºç›®å½•
     node_num ino = createFile(dir, dirname, DirectoryEntry::FileType::Directory);
     if(ino == -1) {
         std::cerr << "createdir : dir file creating failed" << std::endl;
         return false;
     }
 
-    // Ä¿Â¼ÎÄ¼ş´´½¨ĞèÒª×Ô´ø . ºÍ ..
+    // ç›®å½•æ–‡ä»¶åˆ›å»ºéœ€è¦è‡ªå¸¦ . å’Œ ..
     DirectoryEntry dotEntry(ino, ".", DirectoryEntry::FileType::Directory);
     DirectoryEntry dotDotEntry(dir, "..", DirectoryEntry::FileType::Directory);
     
@@ -394,7 +394,7 @@ node_num FileSystem::createDir(const node_num dir, const std::string& dirname) {
         return false;
     }
 
-    // ¸üĞÂinodeºÍsuperblock
+    // æ›´æ–°inodeå’Œsuperblock
     inodes[ino].d_mtime = get_cur_time();
     inodes[ino].d_size = ENTRY_SIZE * 2;
     sb.s_time = get_cur_time();
@@ -403,10 +403,10 @@ node_num FileSystem::createDir(const node_num dir, const std::string& dirname) {
 }
 
 bool FileSystem::createRootDir() {
-    // ÏÈ´´½¨Ò»¸öÎÄ¼ş£¬ ÀàĞÍÉèÖÃÎªÄ¿Â¼
+    // å…ˆåˆ›å»ºä¸€ä¸ªæ–‡ä»¶ï¼Œ ç±»å‹è®¾ç½®ä¸ºç›®å½•
     node_num ino = 1;
 
-    // Ä¿Â¼ÎÄ¼ş´´½¨ĞèÒª×Ô´ø . ºÍ ..
+    // ç›®å½•æ–‡ä»¶åˆ›å»ºéœ€è¦è‡ªå¸¦ . å’Œ ..
     DirectoryEntry dotEntry(ino, ".", DirectoryEntry::FileType::Directory);
     DirectoryEntry dotDotEntry(ino, "..", DirectoryEntry::FileType::Directory);
     
@@ -419,7 +419,7 @@ bool FileSystem::createRootDir() {
         return false;
     }
 
-    // ¸üĞÂinodeºÍsuperblock
+    // æ›´æ–°inodeå’Œsuperblock
     inodes[ino].d_mtime = get_cur_time();
     inodes[ino].d_size = ENTRY_SIZE * 2;
     sb.s_time = get_cur_time();
@@ -428,19 +428,19 @@ bool FileSystem::createRootDir() {
 }
 
 node_num FileSystem::find_from_path(const string& path) {
-    int ino;    // ÆğÊ¼²éÑ¯µÄÄ¿Â¼INodeºÅ
+    int ino;    // èµ·å§‹æŸ¥è¯¢çš„ç›®å½•INodeå·
     if(path.empty()){
         cerr << "error path!" << endl;
         return -1;
     }
-    else {      // ÅĞ¶ÏÊÇÏà¶ÔÂ·¾¶»¹ÊÇ¾ø¶ÔÂ·¾¶
+    else {      // åˆ¤æ–­æ˜¯ç›¸å¯¹è·¯å¾„è¿˜æ˜¯ç»å¯¹è·¯å¾„
         if(path[0] == '/')
             ino = ROOT_INO;         
         else
             ino = user_->current_dir_;
     }
 
-    // ÖØĞÂ½âÎöPath
+    // é‡æ–°è§£æPath
     std::vector<std::string> tokens;
     std::istringstream iss(path);
     std::string token;
@@ -450,7 +450,7 @@ node_num FileSystem::find_from_path(const string& path) {
         }
     }
 
-    // ÒÀ´Î²éÕÒÃ¿Ò»¼¶Ä¿Â¼»òÎÄ¼ş
+    // ä¾æ¬¡æŸ¥æ‰¾æ¯ä¸€çº§ç›®å½•æˆ–æ–‡ä»¶
     for (const auto& token : tokens) {
         DiskInode inode = inodes[ino];
 
@@ -461,11 +461,11 @@ node_num FileSystem::find_from_path(const string& path) {
             return -1;
         }
 
-        // ±éÀúËùÓĞÄ¿Â¼Ïî
+        // éå†æ‰€æœ‰ç›®å½•é¡¹
         bool found = false;
         int entry_no, entry_num = inode.d_size/ENTRY_SIZE;
         for (entry_no = 0; entry_no < entry_num; entry_no++) {
-            // ²éÍ¬Ãû
+            // æŸ¥åŒå
             if (entry_table[entry_no].m_ino && strcmp(entry_table[entry_no].m_name, token.c_str()) == 0) {
                 ino = entry_table[entry_no].m_ino;
                 found = true;
@@ -487,7 +487,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         return false;
     }
 
-    // ÕÒµ½Ä¿±êÎÄ¼şËùÔÚÄ¿Â¼µÄinode±àºÅ
+    // æ‰¾åˆ°ç›®æ ‡æ–‡ä»¶æ‰€åœ¨ç›®å½•çš„inodeç¼–å·
     node_num dir;
     if(filename.rfind('/') == -1)
         dir = user_->current_dir_;
@@ -499,17 +499,17 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         }
     }
 
-    // ÔÚÄ¿±êÄ¿Â¼ÏÂ´´½¨ĞÂÎÄ¼ş
+    // åœ¨ç›®æ ‡ç›®å½•ä¸‹åˆ›å»ºæ–°æ–‡ä»¶
     node_num ino = createFile(dir, filename.substr(filename.rfind('/') + 1));
     if (ino == -1) {
         std::cerr << "Failed to create file: " << filename << std::endl;
         return false;
     }
 
-    // »ñÈ¡inode
+    // è·å–inode
     DiskInode& inode = inodes[ino];
 
-    // ´ÓÎÄ¼ş¶ÁÈ¡²¢Ğ´Èëinode
+    // ä»æ–‡ä»¶è¯»å–å¹¶å†™å…¥inode
     uint offset = 0;
     char buf[BLOCK_SIZE] = "";
     while (infile) {
@@ -520,13 +520,13 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         block_num blkno = file_idx_block(inode, blockno, true);
 
 
-        // Ğ´ÈëÊı¾İ
+        // å†™å…¥æ•°æ®
         uint pos = offset % BLOCK_SIZE;
         uint n = std::min(BLOCK_SIZE - pos, (long)count);
         if(n < BLOCK_SIZE)
             memset(buf+n, 0, BLOCK_SIZE - n);
 
-        // Ğ´ÈëÎïÀí¿é
+        // å†™å…¥ç‰©ç†å—
         if (!write_block(blkno, buf)) {
             std::cerr << "Failed to write block for file: " << filename << std::endl;
             return false;
@@ -536,7 +536,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         offset += n;
     }
 
-    // ¸üĞÂinodeĞÅÏ¢
+    // æ›´æ–°inodeä¿¡æ¯
     inode.d_size = offset;
     inode.d_mtime = get_cur_time();
     inode.d_atime = get_cur_time();
@@ -569,13 +569,13 @@ bool FileSystem::initialize_from_external_directory(const string& path, const no
             struct stat buf;
             if (!lstat((path + '/' + Name).c_str(), &buf))
             {
-                int ino; // »ñÈ¡ÎÄ¼şµÄinodeºÅ
+                int ino; // è·å–æ–‡ä»¶çš„inodeå·
                 if (S_ISDIR(buf.st_mode))
                 {
                     ino = createDir(root_no, Name);
                     cout << "make folder: " << Name << " success! inode:" << ino << endl;
 
-                    /* µİ¹é½øÈë£¬ĞèÒªµİ½øÓÃ»§Ä¿Â¼ */
+                    /* é€’å½’è¿›å…¥ï¼Œéœ€è¦é€’è¿›ç”¨æˆ·ç›®å½• */
                     user_->current_dir_ = ino;
                     if(initialize_from_external_directory(path + '/' + Name, ino) == false){
                         return false;
