@@ -5,7 +5,7 @@ SRC_DIR=src
 TARGET=init client
 
 INIT_SRCS=$(SRC_DIR)/init.cpp 
-CLIENT_SRCS=$(SRC_DIR)/client.cpp $(SRC_DIR)/login.cpp $(SRC_DIR)/fs.cpp $(SRC_DIR)/directory.cpp 
+CLIENT_SRCS=$(SRC_DIR)/client.cpp $(SRC_DIR)/login.cpp $(SRC_DIR)/fs.cpp $(SRC_DIR)/directory.cpp $(SRC_DIR)/dinode.cpp
 
 INIT_OBJS=$(INIT_SRCS:.cpp=.o)
 CLIENT_OBJS=$(CLIENT_SRCS:.cpp=.o)

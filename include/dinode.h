@@ -1,4 +1,6 @@
 #include "parameter.h"
+#include <string>
+#include <vector>
 
 class DiskInode
 {
@@ -16,6 +18,23 @@ public:
 	DiskInode() {;};
 	~DiskInode() {;};
 
+	int get_block_id(int inner_id, bool create);
+	int increase_size();
+	int decrease_size();
+	int push_back_block();
+	int pop_back_block();
+	
+	//char *read_block(int blk_id);
+	//bool write_block(int blk_id, char *buffer);
+	
+	int read_at(int offset, char *buf);
+	int write_at(int offset, char *buf);
+	
+	/* dir inode only */
+	//vector<DirEntry &> &read_dir();
+	int find_file(std::string &name);
+	int create_file(std::string &name);
+	int delete_file(std::string &name);
 
 public:
 	unsigned int d_mode;	/* 状态的标志位，定义见enum INodeFlag */

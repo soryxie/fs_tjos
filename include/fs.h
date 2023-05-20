@@ -8,6 +8,8 @@
 typedef unsigned int uint;
 
 class FileSystem {
+public:
+    friend class DiskInode; 
 
 private:
     User *user_;
@@ -15,6 +17,8 @@ private:
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
     DiskInode inodes[100];  // Inode table
+
+    
 
 private:
     /*

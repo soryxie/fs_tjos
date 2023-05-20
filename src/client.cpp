@@ -41,12 +41,10 @@ void init_command() {
     cmd["init"] = CommandInfo <string> (FileSystem::initialize_from_external_directory, 1, "init <external_root_path>");
 }
 */
-
+FileSystem fs("myDisk.img");
 int main() {
     User user = login();
     user.set_current_dir(1);
-
-    FileSystem fs("myDisk.img");
     fs.set_u(&user);
     
 
