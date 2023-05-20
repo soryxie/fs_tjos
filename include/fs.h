@@ -22,16 +22,16 @@ private:
     */
 
     /* 获取一个空闲inode，并初步初始化 */
-    node_num alloc_inode();
+    int alloc_inode();
 
     /* 获取一个空闲物理块 */
-    block_num alloc_block();
+    int alloc_block();
 
     /* 获取一个物理块的所有内容，返回指向这片缓存的buffer(char *)类型 */
-    bool read_block(block_num blkno, buffer* buf);
+    bool read_block(int blkno, buffer* buf);
     
     /* 写入一个物理块(全覆盖) */
-    bool write_block(block_num blkno, buffer* buf);
+    bool write_block(int blkno, buffer* buf);
 
 
 
@@ -42,7 +42,7 @@ private:
     */
 
 	/* 对于一个文件，索引或者新增物理块 , 失败返回-1 ，未分配的块返回0*/
-    block_num file_idx_block(DiskInode& inode, uint block_idx, bool create);
+    int file_idx_block(DiskInode& inode, uint block_idx, bool create);
 
     /* 系统内接口，针对文件的读：从偏移量处获取size大小的内容，返回读取长度 */
     uint read(DiskInode& inode, buffer* buf, uint size, uint offset);
@@ -55,7 +55,7 @@ private:
     */
    
     /* 针对文件路径的查找：从给定路径查找对应文件的inode编号 否则返回-1 */
-    node_num find_from_path(const std::string& path);
+    int find_from_path(const std::string& path);
 
 
 public:
@@ -66,12 +66,12 @@ public:
     void set_u(User *u) {user_ = u;};
     
     /* 将一个外部文件系统目录作为内部文件系统的根目录并初始化文件系统的目录和文件 */
-    bool initialize_from_external_directory(const std::string& external_root_path, const node_num root_no = 1);
+    bool initialize_from_external_directory(const std::string& external_root_path, const int root_no = 1);
     
-    node_num createFile(const node_num dir, const std::string& filename, DirectoryEntry::FileType type);
+    int createFile(const int dir, const std::string& filename, DirectoryEntry::FileType type);
     //在dir目录下创建一个新文件
 
-    node_num createDir(const node_num dir, const std::string& dirname);
+    int createDir(const int dir, const std::string& dirname);
     //在dir目录下创建一个新目录
 
     bool createRootDir();

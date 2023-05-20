@@ -1,5 +1,3 @@
-#include <cstring>
-
 class DirectoryEntry
 {
 public:
@@ -15,11 +13,7 @@ public:
 
 public:
     DirectoryEntry(){};
-    DirectoryEntry(int ino, const char *name, FileType type = FileType::Unknown) {
-        m_ino = ino;
-        strcpy(m_name, name);
-        m_type = type;
-    }
+    DirectoryEntry(int ino, const char *name, FileType type = FileType::Unknown);
     ~DirectoryEntry(){};
 
 public:
