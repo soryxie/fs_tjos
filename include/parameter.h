@@ -1,6 +1,6 @@
 const long FILE_SIZE = 32*1024*2*512;
 const long BLOCK_SIZE = 512;
-const long INODE_NUM = 98;
+const long INODE_NUM = 100;
 const long INODE_SIZE = 64;
 const long OFFSET_SUPERBLOCK = 0;
 const long OFFSET_INODE = 2*BLOCK_SIZE;

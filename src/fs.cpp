@@ -35,7 +35,7 @@ FileSystem::FileSystem(const std::string& diskfile) {
 
     // 读取Inode 
     disk.seekg(OFFSET_INODE, std::ios::beg);
-    disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*100);
+    disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
 
     // 保存
     diskfile_ = diskfile;

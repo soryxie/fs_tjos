@@ -15,7 +15,7 @@ private:
     std::fstream disk_;     // Disk file stream
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
-    DiskInode inodes[100];  // Inode table
+    DiskInode inodes[INODE_NUM];  // Inode table
 
     
 

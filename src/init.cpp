@@ -20,8 +20,8 @@ void init_superblock()
     sb.s_fsize = FILE_SIZE / BLOCK_SIZE;
     /* 初始化s_inode */
     sb.s_ninode = INODE_NUM;
-    for (int i = 0; i < 98 && i < INODE_NUM; i++)
-        sb.s_inode[i] = i+2;
+    for (int i = 0; i < INODE_NUM; i++)
+        sb.s_inode[i] = i;
     /* 初始化data表 */
     int data_i = 0;
     /* 先填写superblock表的空闲表 */
