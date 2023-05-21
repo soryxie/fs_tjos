@@ -16,10 +16,6 @@ time_t get_cur_time() {
     return chrono::system_clock::to_time_t(chrono::system_clock::now());
 }
 
-int end_block(unsigned int size) {
-    return (size + BLOCK_SIZE - 1)/BLOCK_SIZE;
-}
-
 FileSystem::FileSystem(const std::string& diskfile) {
     // r+w 打开磁盘文件
     std::fstream disk(diskfile, std::ios::in | std::ios::out | std::ios::binary);

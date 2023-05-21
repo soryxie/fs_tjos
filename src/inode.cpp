@@ -10,14 +10,122 @@ extern FileSystem fs;
 * 定位到对应的物理块号
 * 如果 create 为 true，那么如果对应的物理块不存在，就创建一个
 */
-int Inode::get_block_id(int inner_id, bool create) {
-    // 如果 int 大于文件大小或者超出文件系统范围，返回 -1
-    if (create == false && (inner_id > d_size/BLOCK_SIZE || inner_id >= (6 + 2*128 + 2*128*128))) {
+const int DIRECT_COUNT=6;
+const int FIRST_LEVEL_COUNT=128;
+const int SECOND_LEVEL_COUNT=128*128;
+
+int Inode::get_block_id(int inner_id) {
+    // 如果 int 大于文件大小，返回 -1
+    if(inner_id > d_size/BLOCK_SIZE) {
         return FAIL;
     }
 
     /* 直接索引 */
-    if (inner_id < 6) {
+    if (inner_id < DIRECT_COUNT) {
+        return d_addr[inner_id];
+    }
+    else if(inner_id < FIRST_LEVEL_COUNT) {
+        cout<<"Unimplement Error!"<<endl;
+        exit(-1);
+    }
+    return FAIL;
+}
+
+buffer inner_buf[BLOCK_SIZE];
+
+int Inode::read_at(int offset, char* buf, int size) {
+    if (offset >= d_size) {
+        return 0;
+    }
+
+    if (offset + size > d_size) {
+        size = d_size - offset;
+    }
+
+    int read_size = 0;
+
+    for (int pos = offset; pos < offset + size;) {
+        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
+        int block_offset = pos % BLOCK_SIZE;   //块内偏移
+        int blkno = get_block_id(no);
+
+        if (blkno < 0)
+            break;
+
+        /* 读块 */
+        fs.read_block(blkno, inner_buf);
+        /* 读取可能的最大部分 */
+        int block_read_size = std::min<int>(BLOCK_SIZE - block_offset, size - read_size);
+        memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
+        read_size += block_read_size;
+        pos += block_read_size;
+    }
+
+    return read_size;
+}
+
+int Inode::resize(int size) {
+    if (size <= d_size) { //TODO 收缩
+        return 0;
+    }
+
+    int append_block_num = (size + BLOCK_SIZE - 1) / BLOCK_SIZE - (d_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    while(append_block_num--) {
+        if (push_back_block() == FAIL) {
+            return FAIL;
+        }
+    }
+
+    return 0;
+}
+
+int Inode::write_at(int offset, const char* buf, int size) {
+    if (offset + size > d_size) {
+        resize(offset + size);
+    }
+
+    int written_size = 0;
+
+    for (int pos = offset; pos < offset + size;) {
+        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
+        int block_offset = pos % BLOCK_SIZE;   //块内偏移
+        int blkno = get_block_id(no);
+
+        if (blkno < 0) {
+            // 添加新块失败，返回已经写入的字节数
+            return written_size;
+        }
+
+        /* 写入可能的最大部分 */
+        int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
+        
+        /* 是否读原本的内容 */
+        if(block_offset == 0 && block_write_size < BLOCK_SIZE) // 要用到原本的内容
+            fs.read_block(blkno, inner_buf);
+
+        memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
+        fs.write_block(blkno, inner_buf);
+        written_size += block_write_size;
+        pos += block_write_size;
+    }
+
+    // 更新inode的文件大小和最后修改时间
+    if (offset + written_size > d_size) {
+        d_size = offset + written_size;
+    }
+    //d_mtime = get_cur_time();
+
+    return written_size;
+}
+
+int Inode::push_back_block() {
+    int blkno = fs.alloc_block();
+    if(blkno == FAIL) return FAIL;
+    d_addr[d_size / BLOCK_SIZE] = blkno;
+    return blkno;
+
+
+    /*if (inner_id < 6) {
         if(create){  // 此处需要新增
             if(d_addr[inner_id]) {  // 已有块，失败
                 cout << "block in " << inner_id << "already exist! is:" << d_addr[inner_id] << endl;
@@ -31,10 +139,10 @@ int Inode::get_block_id(int inner_id, bool create) {
             }
         }
         return d_addr[inner_id];
-    }
+    }*/
 
     /* 一级索引 */
-    inner_id -= 6;
+    /*inner_id -= 6;
     if (inner_id < 128 * 2) {
         // 是否需要先分配一级索引表的物理块
         if (d_addr[6 + (inner_id / 128)] == 0) {
@@ -66,10 +174,10 @@ int Inode::get_block_id(int inner_id, bool create) {
             }
         }
         return first_level_table[idx_in_ftable];
-    }
+    }*/
 
     /* 二级索引 */
-    inner_id -= 128 * 2;
+    /*inner_id -= 128 * 2;
     if (inner_id < 128 * 128 * 2) {
         // 是否需要先分配一级索引表的物理块
         if (d_addr[8 + (inner_id / (128 * 128))] == 0) {
@@ -128,86 +236,7 @@ int Inode::get_block_id(int inner_id, bool create) {
     }
 
     // 超出范围，返回FAIL
-    return FAIL;
-}
-
-buffer inner_buf[BLOCK_SIZE];
-
-int Inode::read_at(int offset, char* buf, int size) {
-    if (offset >= d_size) {
-        return 0;
-    }
-
-    if (offset + size > d_size) {
-        size = d_size - offset;
-    }
-
-    int read_size = 0;
-
-    for (int pos = offset; pos < offset + size;) {
-        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
-        int block_offset = pos % BLOCK_SIZE;   //块内偏移
-        int blkno = get_block_id(no, false);
-
-        if (blkno < 0)
-            break;
-
-        /* 读块 */
-        fs.read_block(blkno, inner_buf);
-        /* 读取可能的最大部分 */
-        int block_read_size = std::min<int>(BLOCK_SIZE - block_offset, size - read_size);
-        memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
-        read_size += block_read_size;
-        pos += block_read_size;
-    }
-
-    return read_size;
-}
-
-int Inode::write_at(int offset, const char* buf, int size) {
-    if (offset + size > MAX_FILE_SIZE) {
-        return 0;
-    }
-
-    int written_size = 0;
-
-    for (int pos = offset; pos < offset + size;) {
-        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
-        int block_offset = pos % BLOCK_SIZE;   //块内偏移
-        int blkno = get_block_id(no, true);
-
-        if (blkno < 0) {
-            // 添加新块失败，返回已经写入的字节数
-            return written_size;
-        }
-
-        /* 写入可能的最大部分 */
-        int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
-        
-        /* 是否读原本的内容 */
-        if(block_offset == 0 && block_write_size < BLOCK_SIZE) // 要用到原本的内容
-            fs.read_block(blkno, inner_buf);
-
-        memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
-        fs.write_block(blkno, inner_buf);
-        written_size += block_write_size;
-        pos += block_write_size;
-    }
-
-    // 更新inode的文件大小和最后修改时间
-    if (offset + written_size > d_size) {
-        d_size = offset + written_size;
-    }
-    //d_mtime = get_cur_time();
-
-    return written_size;
-}
-
-int Inode::push_back_block() {
-    int blkno = fs.alloc_block();
-    if(blkno == FAIL) return FAIL;
-    d_addr[d_size / BLOCK_SIZE] = blkno;
-    return blkno;
+    return FAIL;*/
 }
 
 vector<DirectoryEntry> Inode::get_entry() {
@@ -272,12 +301,12 @@ int Inode::create_file(const string& filename, bool is_dir) {
     
     int blknum = entrynum / ENTRYS_PER_BLOCK;
     DirectoryEntry entry_block[ENTRYS_PER_BLOCK];
-    fs.read_block(get_block_id(blknum, false), (buffer *)entry_block); // 读取目录文件内容
+    fs.read_block(get_block_id(blknum), (buffer *)entry_block); // 读取目录文件内容
     DirectoryEntry new_entry(ino, 
                             filename.c_str(), 
                             is_dir? DirectoryEntry::FileType::Directory : DirectoryEntry::FileType::RegularFile);
     entry_block[entrynum % ENTRYS_PER_BLOCK] = new_entry;
-    fs.write_block(get_block_id(blknum, false), (buffer *)entry_block); // 写回目录文件内容
+    fs.write_block(get_block_id(blknum), (buffer *)entry_block); // 写回目录文件内容
 
     // 更新目录文件inode
     d_size += ENTRY_SIZE;

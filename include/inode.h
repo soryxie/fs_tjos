@@ -49,8 +49,8 @@ public:
 	Inode() {;};
 	~Inode() {;};
 
-	int get_block_id(int inner_id, bool create);
-	int increase_size();
+	int get_block_id(int inner_id);
+	int resize(int size);
 	int decrease_size();
 	int push_back_block();
 	int pop_back_block();

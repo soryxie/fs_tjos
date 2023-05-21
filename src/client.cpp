@@ -41,7 +41,7 @@ void init_command() {
     cmd["init"] = CommandInfo <string> (FileSystem::initialize_from_external_directory, 1, "init <external_root_path>");
 }
 */
-FileSystem fs("/root/fs/myDisk.img");
+FileSystem fs("myDisk.img");
 int main() {
     User user = login();
     user.set_current_dir(1);
@@ -69,7 +69,7 @@ int main() {
 
         if(tokens[0] == "init"){
             //if(fs.initialize_from_external_directory(tokens[1]) == false) {
-            if(fs.initialize_from_external_directory("/root/fs/test_folder") == false) {
+            if(fs.initialize_from_external_directory("test_folder") == false) {
                 cout << "Initialize failed!" << endl;
             }
         }
