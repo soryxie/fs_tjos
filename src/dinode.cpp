@@ -185,7 +185,7 @@ int DiskInode::write_at(int offset, const char* buf, int size) {
         int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
         
         /* 是否读原本的内容 */
-        if(block_write_size < BLOCK_SIZE) // 要用到原本的内容
+        if(block_offset == 0 && block_write_size < BLOCK_SIZE) // 要用到原本的内容
             fs.read_block(blkno, inner_buf);
 
         memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
@@ -212,9 +212,9 @@ int DiskInode::push_back_block() {
 
 vector<DirectoryEntry> DiskInode::get_entry() {
     vector<DirectoryEntry> entrys;
-    entrys.resize(d_size / BLOCK_SIZE);
+    entrys.resize(d_size / ENTRY_SIZE);
 
-    if(read_at(0, (char *)entrys.data(), d_size)) {
+    if(!read_at(0, (char *)entrys.data(), d_size)) {
         cerr << "getEntry: read directory entries failed." << endl;
         return entrys;
     }
@@ -240,6 +240,7 @@ int DiskInode::init_as_dir(int ino, int fa_ino) {
     sub_entrys[0] = dot_entry;
     sub_entrys[1] = dotdot_entry;
     fs.write_block(sub_dir_blk, (buffer *)sub_entrys);
+    d_size += ENTRY_SIZE*2;
     return 0;
 }
 
@@ -264,7 +265,7 @@ int DiskInode::create_file(const string& filename, bool is_dir) {
         return -1;
     }
     if (is_dir) {
-        fs.inodes[ino].init_as_dir(ino, 2); //TODO 换成INode类
+        fs.inodes[ino].init_as_dir(ino, 1); //TODO 换成INode类
     }
     
     int blknum = entrynum / ENTRYS_PER_BLOCK;
