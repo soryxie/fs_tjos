@@ -1,6 +1,5 @@
 #include "sb.h"
 #include "dinode.h"
-#include "directory.h"
 #include "user.h"
 #include <string>
 #include <fstream>
@@ -38,22 +37,6 @@ private:
     bool write_block(int blkno, buffer* buf);
 
 
-
-
-
-    /*
-    * --------- 文件(inode)层 ------------
-    */
-
-	/* 对于一个文件，索引或者新增物理块 , 失败返回-1 ，未分配的块返回0*/
-    int file_idx_block(DiskInode& inode, uint block_idx, bool create);
-
-    /* 系统内接口，针对文件的读：从偏移量处获取size大小的内容，返回读取长度 */
-    uint read(DiskInode& inode, buffer* buf, uint size, uint offset);
-
-    /* 系统内接口，针对文件的写：从偏移量处写入size大小的内容，返回写长度 */
-    uint write(DiskInode& inode, const buffer* buf, uint size, uint offset);
-
     /*
     * --------- 目录层 ------------
     */
@@ -68,6 +51,10 @@ public:
     ~FileSystem();
 
     void set_u(User *u) {user_ = u;};
+
+    DiskInode& _get_root();
+
+    void _init_root();
     
     /* 将一个外部文件系统目录作为内部文件系统的根目录并初始化文件系统的目录和文件 */
     bool initialize_from_external_directory(const std::string& external_root_path, const int root_no = 1);

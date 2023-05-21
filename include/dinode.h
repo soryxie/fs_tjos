@@ -1,4 +1,5 @@
 #include "parameter.h"
+#include "directory.h"
 #include <string>
 #include <vector>
 
@@ -27,14 +28,15 @@ public:
 	//char *read_block(int blk_id);
 	//bool write_block(int blk_id, char *buffer);
 	
-	int read_at(int offset, char *buf);
-	int write_at(int offset, char *buf);
+	int read_at(int offset, char *buf, int size);
+	int write_at(int offset, const char *buf, int size);
 	
 	/* dir inode only */
-	//vector<DirEntry &> &read_dir();
-	int find_file(std::string &name);
-	int create_file(std::string &name);
-	int delete_file(std::string &name);
+	int init_as_dir(int ino, int fa_ino);
+	std::vector<DirectoryEntry> get_entry();
+	int find_file(const std::string &name);
+	int create_file(const std::string &name, bool is_dir);
+	int delete_file(const std::string &name);
 
 public:
 	unsigned int d_mode;	/* 状态的标志位，定义见enum INodeFlag */

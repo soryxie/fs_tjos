@@ -130,3 +130,166 @@ int DiskInode::get_block_id(int inner_id, bool create) {
     // 超出范围，返回FAIL
     return FAIL;
 }
+
+buffer inner_buf[BLOCK_SIZE];
+
+int DiskInode::read_at(int offset, char* buf, int size) {
+    if (offset >= d_size) {
+        return 0;
+    }
+
+    if (offset + size > d_size) {
+        size = d_size - offset;
+    }
+
+    int read_size = 0;
+
+    for (int pos = offset; pos < offset + size;) {
+        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
+        int block_offset = pos % BLOCK_SIZE;   //块内偏移
+        int blkno = get_block_id(no, false);
+
+        if (blkno < 0)
+            break;
+
+        /* 读块 */
+        fs.read_block(blkno, inner_buf);
+        /* 读取可能的最大部分 */
+        int block_read_size = std::min<int>(BLOCK_SIZE - block_offset, size - read_size);
+        memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
+        read_size += block_read_size;
+        pos += block_read_size;
+    }
+
+    return read_size;
+}
+
+int DiskInode::write_at(int offset, const char* buf, int size) {
+    if (offset + size > MAX_FILE_SIZE) {
+        return 0;
+    }
+
+    int written_size = 0;
+
+    for (int pos = offset; pos < offset + size;) {
+        int no = pos / BLOCK_SIZE;             //计算inode中的块编号
+        int block_offset = pos % BLOCK_SIZE;   //块内偏移
+        int blkno = get_block_id(no, true);
+
+        if (blkno < 0) {
+            // 添加新块失败，返回已经写入的字节数
+            return written_size;
+        }
+
+        /* 写入可能的最大部分 */
+        int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
+        
+        /* 是否读原本的内容 */
+        if(block_write_size < BLOCK_SIZE) // 要用到原本的内容
+            fs.read_block(blkno, inner_buf);
+
+        memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
+        fs.write_block(blkno, inner_buf);
+        written_size += block_write_size;
+        pos += block_write_size;
+    }
+
+    // 更新inode的文件大小和最后修改时间
+    if (offset + written_size > d_size) {
+        d_size = offset + written_size;
+    }
+    //d_mtime = get_cur_time();
+
+    return written_size;
+}
+
+int DiskInode::push_back_block() {
+    int blkno = fs.alloc_block();
+    if(blkno == FAIL) return FAIL;
+    d_addr[d_size / BLOCK_SIZE] = blkno;
+    return blkno;
+}
+
+vector<DirectoryEntry> DiskInode::get_entry() {
+    vector<DirectoryEntry> entrys;
+    entrys.resize(d_size / BLOCK_SIZE);
+
+    if(read_at(0, (char *)entrys.data(), d_size)) {
+        cerr << "getEntry: read directory entries failed." << endl;
+        return entrys;
+    }
+
+    return entrys;
+}
+
+int DiskInode::init_as_dir(int ino, int fa_ino) {
+    int sub_dir_blk = push_back_block();
+    if (sub_dir_blk == 0) {
+        std::cerr << "createFile: No free block" << std::endl;
+        return -1;
+    }
+    // 初始化目录文件
+    DirectoryEntry sub_entrys[ENTRYS_PER_BLOCK];
+    memset(sub_entrys, 0, sizeof(sub_entrys));
+    DirectoryEntry dot_entry(ino, 
+                        ".", 
+                        DirectoryEntry::FileType::Directory);
+    DirectoryEntry dotdot_entry(fa_ino, 
+                                "..", 
+                                DirectoryEntry::FileType::Directory);
+    sub_entrys[0] = dot_entry;
+    sub_entrys[1] = dotdot_entry;
+    fs.write_block(sub_dir_blk, (buffer *)sub_entrys);
+    return 0;
+}
+
+int DiskInode::create_file(const string& filename, bool is_dir) {
+    auto entrys = get_entry();
+    int entrynum = entrys.size();
+    for (auto& entry : entrys) {
+        if (entry.m_ino && strcmp(entry.m_name, filename.c_str()) == 0) {
+            std::cerr << "createFile: File already exists." << std::endl;
+            return -1;
+        }
+    }
+ 
+    if (entrynum % ENTRYS_PER_BLOCK == 0) { // 需要分配新block
+        push_back_block();
+    }
+
+    // 找到空闲的inode和数据块
+    int ino = fs.alloc_inode();
+    if (ino == 0) {
+        std::cerr << "createFile: No free inode" << std::endl;
+        return -1;
+    }
+    if (is_dir) {
+        fs.inodes[ino].init_as_dir(ino, 2); //TODO 换成INode类
+    }
+    
+    int blknum = entrynum / ENTRYS_PER_BLOCK;
+    DirectoryEntry entry_block[ENTRYS_PER_BLOCK];
+    fs.read_block(get_block_id(blknum, true), (buffer *)entry_block); // 读取目录文件内容
+    DirectoryEntry new_entry(ino, 
+                            filename.c_str(), 
+                            is_dir? DirectoryEntry::FileType::Directory : DirectoryEntry::FileType::RegularFile);
+    entry_block[entrynum % ENTRYS_PER_BLOCK] = new_entry;
+    fs.write_block(get_block_id(blknum, true), (buffer *)entry_block); // 写回目录文件内容
+
+    // 更新目录文件inode
+    d_size += ENTRY_SIZE;
+    //inodes[dir].d_mtime = get_cur_time();
+    
+    return ino;
+}
+
+int DiskInode::find_file(const string &name) {
+    auto entrys = get_entry();
+    int entrynum = entrys.size();
+    for (auto& entry : entrys) {
+        if (entry.m_ino && strcmp(entry.m_name, name.c_str()) == 0) {
+            return entry.m_ino;
+        }
+    }
+    return -1;
+}
