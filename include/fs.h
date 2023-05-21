@@ -1,5 +1,5 @@
 #include "sb.h"
-#include "dinode.h"
+#include "inode.h"
 #include "user.h"
 #include <string>
 #include <fstream>

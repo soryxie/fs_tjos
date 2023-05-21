@@ -1,5 +1,5 @@
 #include "../include/sb.h"        // superblock相关
-#include "../include/dinode.h"    // inode相关
+#include "../include/inode.h"    // inode相关
 #include <string>
 #include <iostream>
 #include <sys/mman.h>

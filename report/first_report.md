@@ -30,7 +30,7 @@
 
 > sb.h 		-> superblock 数据结构
 >
-> dinode.h 	-> diskinode 数据结构
+> inode.h 	-> diskinode 数据结构
 >
 > directory.h  -> directory entry 数据结构
 
