@@ -1,6 +1,7 @@
 #include "sb.h"
 #include "inode.h"
 #include "user.h"
+#include "BlockCache.h"
 #include <string>
 #include <fstream>
 
@@ -9,6 +10,7 @@ typedef unsigned int uint;
 class FileSystem {
 public:
     friend class Inode; 
+    friend class BlockCache; 
 
 private:
     User *user_;
@@ -16,6 +18,8 @@ private:
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
     Inode inodes[INODE_NUM];  // Inode table
+
+    BlockCacheMgr block_cache_mgr_;
 
     
 

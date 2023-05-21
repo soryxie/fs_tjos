@@ -1,3 +1,6 @@
+#ifndef PARAMETER
+#define PARAMETER
+
 const long FILE_SIZE = 32*1024*2*512;
 const long BLOCK_SIZE = 512;
 const long INODE_NUM = 100;
@@ -14,3 +17,5 @@ const long ROOT_INO = 1;  // 根目录的inode号
 
 typedef char buffer;
 #define FAIL -1
+
+#endif
