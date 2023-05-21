@@ -144,9 +144,9 @@ int FileSystem::find_from_path(const string& path) {
     }
 
     // 重新解析Path
-    std::vector<std::string> tokens;
-    std::istringstream iss(path);
-    std::string token;
+    vector<string> tokens;
+    istringstream iss(path);
+    string token;
     while (getline(iss, token, '/')) {
         if (!token.empty()) {
             tokens.push_back(token);
@@ -155,17 +155,8 @@ int FileSystem::find_from_path(const string& path) {
 
     // 依次查找每一级目录或文件
     for (const auto& token : tokens) {
-        auto entrys = inodes[ino].get_entry();
-        bool found = false;
-        // 遍历所有目录项
-        for (auto& entry : entrys) {
-            if (entry.m_ino && strcmp(entry.m_name, token.c_str()) == 0) {
-                ino = entry.m_ino;
-                found = true;
-                break;
-            }
-        }
-        if (!found) return FAIL;
+        ino = inodes[ino].find_file(token);
+        if (ino == FAIL) return FAIL;
     }
 
     return ino;

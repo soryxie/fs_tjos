@@ -342,5 +342,5 @@ int Inode::find_file(const string &name) {
             return entry.m_ino;
         }
     }
-    return -1;
+    return FAIL;
 }
