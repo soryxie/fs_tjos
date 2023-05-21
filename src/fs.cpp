@@ -34,8 +34,21 @@ FileSystem::FileSystem(const std::string& diskfile) {
     disk.read(reinterpret_cast<char*>(&sb), sizeof(SuperBlock));
 
     // 读取Inode 
+    DiskInode dinodes[INODE_NUM];
     disk.seekg(OFFSET_INODE, std::ios::beg);
-    disk.read(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
+    disk.read(reinterpret_cast<char*>(&dinodes[0]), sizeof(DiskInode)*INODE_NUM);
+    for (int i=0; i<INODE_NUM;i++) {
+        inodes[i].i_ino = i;
+        inodes[i].d_mode = dinodes[i].d_mode;
+        inodes[i].d_nlink = dinodes[i].d_nlink;
+        inodes[i].d_uid = dinodes[i].d_uid;
+        inodes[i].d_gid = dinodes[i].d_gid;
+        inodes[i].d_size = dinodes[i].d_size;
+        inodes[i].d_atime = dinodes[i].d_atime;
+        inodes[i].d_mtime = dinodes[i].d_mtime;
+        for (int j = 0; j < 10; j++)
+            inodes[i].d_addr[j] = dinodes[i].d_addr[j];
+    }
 
     // 保存
     diskfile_ = diskfile;
@@ -48,6 +61,18 @@ FileSystem::~FileSystem() {
     disk_.write(reinterpret_cast<char*>(&sb), sizeof(SuperBlock));
 
     disk_.seekp(OFFSET_INODE, std::ios::beg);
+    DiskInode dinodes[INODE_NUM];
+    for (int i=0; i<INODE_NUM;i++) {
+        dinodes[i].d_mode = inodes[i].d_mode;
+        dinodes[i].d_nlink = inodes[i].d_nlink;
+        dinodes[i].d_uid = inodes[i].d_uid;
+        dinodes[i].d_gid = inodes[i].d_gid;
+        dinodes[i].d_size = inodes[i].d_size;
+        dinodes[i].d_atime = inodes[i].d_atime;
+        dinodes[i].d_mtime = inodes[i].d_mtime;
+        for (int j = 0; j < 10; j++)
+            dinodes[i].d_addr[j] = inodes[i].d_addr[j];
+    }
     disk_.write(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
 
     // 关闭文件
@@ -55,9 +80,6 @@ FileSystem::~FileSystem() {
 }
 
 int FileSystem::alloc_inode() {
-
-
-    
     if(sb.s_ninode <= 1)
         return 0;
     int ino = sb.s_inode[--sb.s_ninode];
@@ -106,7 +128,7 @@ bool FileSystem::read_block(int blkno, buffer* buf) {
 }
 
 bool FileSystem::write_block(int blkno, buffer* buf) {
-    cout << "wrire " << blkno << endl;
+    //cout << "wrire " << blkno << endl;
     disk_.seekg(OFFSET_DATA + blkno*BLOCK_SIZE, std::ios::beg);
     disk_.write(buf, BLOCK_SIZE);
     return true;
@@ -179,7 +201,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     }
 
     // 获取inode
-    DiskInode& inode = inodes[ino];
+    Inode& inode = inodes[ino];
 
     // 从文件读取并写入inode
     std::ifstream infile(src, std::ios::binary | std::ios::in);
@@ -213,17 +235,10 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     return true;
 }
 
-DiskInode &FileSystem::_get_root() {
-    return inodes[ROOT_INO];
-}
-
-void FileSystem::_init_root(){
-    auto root_ = _get_root();
-    root_.init_as_dir(ROOT_INO, ROOT_INO);
-}
-
 bool FileSystem::initialize_from_external_directory(const string& path, const int root_no)
 {
+    if(inodes[ROOT_INO].d_size == 0)
+        inodes[ROOT_INO].init_as_dir(ROOT_INO, ROOT_INO);
     DIR *pDIR = opendir((path + '/').c_str());
     dirent *pdirent = NULL;
     if (pDIR != NULL)
@@ -282,12 +297,12 @@ bool FileSystem::ls(const string& path) {
         return false;
     }
 
-    DiskInode inode = inodes[path_no];
+    Inode inode = inodes[path_no];
 
     auto entries = inode.get_entry();
     for (auto& entry : entries) {
         if (entry.m_ino) {
-            DiskInode child_inode = inodes[entry.m_ino];
+            Inode child_inode = inodes[entry.m_ino];
             string name(entry.m_name);
             cout << name;
             if (entry.m_type == DirectoryEntry::FileType::Directory) {

@@ -8,14 +8,14 @@ typedef unsigned int uint;
 
 class FileSystem {
 public:
-    friend class DiskInode; 
+    friend class Inode; 
 
 private:
     User *user_;
     std::fstream disk_;     // Disk file stream
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
-    DiskInode inodes[INODE_NUM];  // Inode table
+    Inode inodes[INODE_NUM];  // Inode table
 
     
 
@@ -51,10 +51,6 @@ public:
     ~FileSystem();
 
     void set_u(User *u) {user_ = u;};
-
-    DiskInode& _get_root();
-
-    void _init_root();
     
     /* 将一个外部文件系统目录作为内部文件系统的根目录并初始化文件系统的目录和文件 */
     bool initialize_from_external_directory(const std::string& external_root_path, const int root_no = 1);
@@ -104,7 +100,7 @@ public:
     bool ls(const std::string& path);
     //获取当前目录下的所有文件和目录
 
-    bool getFileInfo(const std::string& filename, DiskInode& ino);
+    bool getFileInfo(const std::string& filename, Inode& ino);
     //获取指定文件的详细信息，如文件大小，创建时间等
 
 
