@@ -98,7 +98,7 @@ public:
     bool renameFile(const std::string& filename, const std::string& newname);
     //修改文件名
 
-    bool changeDir(const std::string& dirname);
+    bool changeDir(std::string& dirname);
     //更改当前目录到指定目录
 
     bool ls(const std::string& path);
@@ -107,6 +107,8 @@ public:
     bool getFileInfo(const std::string& filename, Inode& ino);
     //获取指定文件的详细信息，如文件大小，创建时间等
 
+    void set_current_dir_name(std::string& path); 
+    //修改User的当前目录字符串
 
 
 };

@@ -130,6 +130,7 @@ bool FileSystem::write_block(int blkno, buffer* buf) {
     return true;
 }
 
+
 int FileSystem::find_from_path(const string& path) {
     int ino;    // 起始查询的目录INode号
     if(path.empty()){
@@ -170,6 +171,53 @@ int FileSystem::find_from_path(const string& path) {
 
     return ino;
 }
+
+void FileSystem::set_current_dir_name(std::string& path) 
+    {
+        // 重新解析Path
+        std::vector<std::string> tokens;
+        std::istringstream iss(path);
+        std::string token;
+        while (getline(iss, token, '/')) 
+        {
+            if (!token.empty()) {
+                tokens.push_back(token);
+            }
+        }
+
+        // 依次查找每一级目录或文件
+        for (const auto& token : tokens)
+        {  
+            if (token == "..") 
+            {
+                if(user_->current_dir_name !="/")
+                {
+                    size_t pos = user_->current_dir_name.rfind('/');
+                    if (pos != std::string::npos) 
+                    {
+                        user_->current_dir_name = user_->current_dir_name.substr(0, pos);
+                    } 
+                    else 
+                    {
+                        user_->current_dir_name = "/";
+                    }
+                    if(user_->current_dir_name == "")
+                        user_->current_dir_name = "/";
+                }
+                return;
+            } 
+            else if (token == ".") {}
+            else
+            {
+                if (user_->current_dir_name.back() != '/') 
+                {
+                    user_->current_dir_name += '/';
+                }
+                user_->current_dir_name += path;
+            }
+        }
+    }
+
 
 /**
 * 从外部文件读取
@@ -300,6 +348,23 @@ bool FileSystem::ls(const string& path) {
         if (entry.m_ino) {
             Inode child_inode = inodes[entry.m_ino];
             string name(entry.m_name);
+
+            //输出用户            
+            cout.width(7); 
+            cout << user_->username;
+            
+            //输出文件大小
+            cout.width(5);
+            cout << child_inode.d_size  << "B ";
+
+            //输出最后修改时间
+            std::time_t t_time = child_inode.d_mtime;
+            std::tm* local_time = std::localtime(&t_time);  // int时间转换为当地时间
+            char buffer[80];
+            std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local_time);  // 格式化输出
+            std::cout << buffer << " ";
+
+            //输出文件名
             cout << name;
             if (entry.m_type == DirectoryEntry::FileType::Directory) {
                 cout << "/";
@@ -309,4 +374,23 @@ bool FileSystem::ls(const string& path) {
     }
 
     return true;
+}
+
+bool FileSystem::changeDir(std::string& dirname)
+{
+    int path_no = find_from_path(dirname);
+    if (path_no == FAIL) 
+    {
+        std::cerr << "cd: cannot find '" << dirname << "': No such file or directory" << std::endl;
+        return false;
+    }
+    user_->set_current_dir(path_no);
+    set_current_dir_name(dirname);
+    return true;
+}
+
+int FileSystem::createDir(const int dir, const std::string& dirname)
+{
+    return 0;
+    //path_no = user_->current_dir_;
 }
