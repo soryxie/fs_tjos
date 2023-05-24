@@ -21,6 +21,8 @@ public:
 
 class BlockCacheMgr {
 public:
+    BlockCacheMgr();
+    ~BlockCacheMgr();
     std::vector<int> cache_id_queue_;
     std::map<int, BlockCache> cache_map_;
 

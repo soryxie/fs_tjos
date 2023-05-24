@@ -41,7 +41,7 @@ void init_command() {
     cmd["init"] = CommandInfo <string> (FileSystem::initialize_from_external_directory, 1, "init <external_root_path>");
 }
 */
-FileSystem fs("myDisk.img");
+FileSystem fs("/root/fs/myDisk.img");
 int main() {
     User user = login();
     user.set_current_dir(1);
@@ -69,7 +69,7 @@ int main() {
 
         if(tokens[0] == "init"){
             //if(fs.initialize_from_external_directory(tokens[1]) == false) {
-            if(fs.initialize_from_external_directory("test_folder") == false) {
+            if(fs.initialize_from_external_directory("/root/fs/test_folder") == false) {
                 cout << "Initialize failed!" << endl;
             }
         }
@@ -88,12 +88,10 @@ int main() {
         else if(tokens[0] == "cat"){
             fs.cat(tokens[1]);
         }
-        /* else if(tokens[0] == "mkdir"){
-            fs.createDir(tokens[1]);
+        else if(tokens[0] == "exit"){
+            break;
         }
-        else if(tokens[0] == "cd"){
-            fs.changeDir(tokens[1]);
-        }
+        /* 
         else if(tokens[0] == "touch"){
             fs.createFile(tokens[1]);
         }
@@ -106,7 +104,6 @@ int main() {
         else if(tokens[0] == "cp"){
             fs.copyFile(tokens[1], tokens[2]);
         }
-        
         else if(tokens[0] == "write"){
             fs.writeFile(tokens[1]);
         }
@@ -116,13 +113,9 @@ int main() {
         else if(tokens[0] == "rm"){
             fs.deleteFile(tokens[1]);
         }
-        else if(tokens[0] == "exit"){
-            fs.exit();
-            break;
-        }
         else if(tokens[0] == "help"){
             fs.help();
-        }*/
+        } */
 
 
         
@@ -149,8 +142,6 @@ int main() {
             std::cout << "Invalid command." << std::endl;
         }*/
     }
-
-    fs.~FileSystem();
     return 0;
 }
 
