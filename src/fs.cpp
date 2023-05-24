@@ -367,16 +367,12 @@ int FileSystem::ls(const string& path) {
 
 int FileSystem::changeDir(string& dirname) {
     // 找到目标文件所在目录的inode编号
-    int dir;
-    if(dirname.rfind('/') == -1)
-        dir = user_->current_dir_;
-    else {
-        dir = find_from_path(dirname);
-        if (dir == FAIL) {
-            cerr << "Failed to find directory: " << dirname << endl;
-            return FAIL;
-        }
+    int dir = find_from_path(dirname);
+    if (dir == FAIL) {
+        cerr << "Failed to find directory: " << dirname << endl;
+        return FAIL;
     }
+    
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
     auto dir_inode = inodes[dir];
     if(dir_inode.d_mode & Inode::FileType::Directory == 0) {
