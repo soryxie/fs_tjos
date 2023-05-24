@@ -86,7 +86,10 @@ int main() {
             fs.changeDir(tokens[1]);
         }
         else if(tokens[0] == "mkdir"){
-            fs.createDir(tokens[1]);
+            fs.createDir(user.current_dir_,tokens[1]);
+        }
+        else if(tokens[0] == "cat"){
+            fs.cat(tokens[1]);
         }
         /* else if(tokens[0] == "mkdir"){
             fs.createDir(tokens[1]);
@@ -106,9 +109,7 @@ int main() {
         else if(tokens[0] == "cp"){
             fs.copyFile(tokens[1], tokens[2]);
         }
-        else if(tokens[0] == "cat"){
-            fs.readFile(tokens[1]);
-        }
+        
         else if(tokens[0] == "write"){
             fs.writeFile(tokens[1]);
         }

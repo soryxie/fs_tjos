@@ -131,6 +131,18 @@ bool FileSystem::write_block(int blkno, buffer* buf) {
 }
 
 
+vector<string> FileSystem::split_path(string path) {
+    vector<string> tokens;
+    istringstream iss(path);
+    string token;
+    while (getline(iss, token, '/')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
+}
+
 int FileSystem::find_from_path(const string& path) {
     int ino;    // 起始查询的目录INode号
     if(path.empty()){
@@ -145,28 +157,12 @@ int FileSystem::find_from_path(const string& path) {
     }
 
     // 重新解析Path
-    std::vector<std::string> tokens;
-    std::istringstream iss(path);
-    std::string token;
-    while (getline(iss, token, '/')) {
-        if (!token.empty()) {
-            tokens.push_back(token);
-        }
-    }
+    auto tokens = split_path(path);
 
     // 依次查找每一级目录或文件
     for (const auto& token : tokens) {
-        auto entrys = inodes[ino].get_entry();
-        bool found = false;
-        // 遍历所有目录项
-        for (auto& entry : entrys) {
-            if (entry.m_ino && strcmp(entry.m_name, token.c_str()) == 0) {
-                ino = entry.m_ino;
-                found = true;
-                break;
-            }
-        }
-        if (!found) return FAIL;
+        ino = inodes[ino].find_file(token);
+        if (ino == FAIL) return FAIL;
     }
 
     return ino;
@@ -246,6 +242,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         std::cerr << "Failed to open file: " << src << std::endl;
         return false;
     }
+
     // 获取文件大小
     infile.seekg(0, std::ios::end);
     size_t size = infile.tellg();
@@ -398,11 +395,31 @@ bool FileSystem::changeDir(std::string& dirname)
     return true;
 }
 
-int FileSystem::createDir(const std::string& dirname)
+int FileSystem::createDir(const int current_dir, const std::string& dirname)
 {
-    int path_no = user_->current_dir_;
-    path_no = inodes[path_no].create_file(dirname, true);
+
+    int path_no = inodes[current_dir].create_file(dirname, true);
     cout << "make folder: " << dirname << " success! inode:" << path_no << endl;
     return path_no;
 
+}
+
+bool FileSystem::cat(const string& path) {
+    int path_no = find_from_path(path);
+    if (path_no == -1) {
+        std::cerr << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
+        return false;
+    }
+
+    Inode inode = inodes[path_no];
+    /*if (inode.d_mode & S_IFDIR) {
+        std::cerr << "cat: " << path << ": Is a directory" << std::endl;
+        return false;
+    }*/
+    string str;
+    str.resize(inode.d_size+1);
+    inode.read_at(0, str.data(), inode.d_size);
+    
+    cout << str << endl;
+    return true;
 }

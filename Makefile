@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -std=c++11 -g
+CFLAGS=-c -std=c++17 -g
 
 SRC_DIR=src
 TARGET=init client

@@ -31,8 +31,6 @@ int Inode::get_block_id(int inner_id) {
     return FAIL;
 }
 
-//buffer inner_buf[BLOCK_SIZE];
-
 int Inode::read_at(int offset, char* buf, int size) {
     if (offset >= d_size) {
         return 0;
@@ -229,5 +227,5 @@ int Inode::find_file(const string &name) {
             return entry.m_ino;
         }
     }
-    return -1;
+    return FAIL;
 }

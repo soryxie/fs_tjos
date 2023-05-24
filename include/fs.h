@@ -21,9 +21,10 @@ private:
 
     BlockCacheMgr block_cache_mgr_;
 
-    
-
 private:
+
+    std::vector<std::string> split_path(std::string path);
+
     /*
     * --------- 物理层 ------------
     */
@@ -48,7 +49,6 @@ private:
     /* 针对文件路径的查找：从给定路径查找对应文件的inode编号 否则返回-1 */
     int find_from_path(const std::string& path);
 
-
 public:
     FileSystem() {};
     FileSystem(const std::string& diskfile);
@@ -62,7 +62,7 @@ public:
     int createFile(const int dir, const std::string& filename, DirectoryEntry::FileType type);
     //在dir目录下创建一个新文件
 
-    int createDir(const std::string& dirname);
+    int createDir(const int current_dir, const std::string& dirname);
     //在当前目录下创建一个新目录,返回值是该目录的ino
 
     bool createRootDir();
@@ -111,4 +111,6 @@ public:
     //修改User的当前目录字符串
 
 
+    bool cat(const std::string& filename);
+    // 输出指定文件的内容
 };
