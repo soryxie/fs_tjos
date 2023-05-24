@@ -130,7 +130,6 @@ bool FileSystem::write_block(int blkno, buffer* buf) {
     return true;
 }
 
-
 vector<string> FileSystem::split_path(string path) {
     vector<string> tokens;
     istringstream iss(path);
@@ -366,15 +365,14 @@ bool FileSystem::ls(const string& path) {
     return true;
 }
 
-bool FileSystem::changeDir(std::string& dirname)
-{
+bool FileSystem::changeDir(std::string& dirname) {
     int path_no = find_from_path(dirname);
     if (path_no == FAIL) 
     {
         std::cerr << "cd: cannot find '" << dirname << "': No such file or directory" << std::endl;
         return false;
     }
-    
+
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
     auto entries = inodes[user_->current_dir_].get_entry();
     for (auto& entry : entries)
@@ -388,20 +386,16 @@ bool FileSystem::changeDir(std::string& dirname)
                 return false;
             }
         }
-    }
-    
+    } 
     user_->set_current_dir(path_no);
     set_current_dir_name(dirname);
     return true;
 }
 
-int FileSystem::createDir(const int current_dir, const std::string& dirname)
-{
-
+int FileSystem::createDir(const int current_dir, const std::string& dirname) {
     int path_no = inodes[current_dir].create_file(dirname, true);
     cout << "make folder: " << dirname << " success! inode:" << path_no << endl;
     return path_no;
-
 }
 
 bool FileSystem::cat(const string& path) {

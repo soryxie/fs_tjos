@@ -58,15 +58,9 @@ public:
     
     /* 将一个外部文件系统目录作为内部文件系统的根目录并初始化文件系统的目录和文件 */
     bool initialize_from_external_directory(const std::string& external_root_path, const int root_no = 1);
-    
-    int createFile(const int dir, const std::string& filename, DirectoryEntry::FileType type);
-    //在dir目录下创建一个新文件
 
     int createDir(const int current_dir, const std::string& dirname);
     //在当前目录下创建一个新目录,返回值是该目录的ino
-
-    bool createRootDir();
-    // 创建根目录
 
     bool loadFile(const std::string& filename, const std::string& dst);
     //从文件系统中加载一个文件，将其复制到本地目录中
@@ -109,7 +103,6 @@ public:
 
     void set_current_dir_name(std::string& path); 
     //修改User的当前目录字符串
-
 
     bool cat(const std::string& filename);
     // 输出指定文件的内容

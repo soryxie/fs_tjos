@@ -52,9 +52,6 @@ int main() {
     while (true) {
         // 读取用户输入的命令
         string input;
-        //auto entries = fs.inode.get_entry();
-        //auto entry = entries[user.get_current_dir()]
-        //string name(entry.m_name);
         cout << "$ "<< user.get_current_dir_name() << ">>";
         std::getline(std::cin, input);
 
