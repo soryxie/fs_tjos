@@ -52,7 +52,7 @@ int main() {
     while (true) {
         // 读取用户输入的命令
         string input;
-        cout << ">> ";
+        cout << "$ "<< user.get_current_dir_name() << ">>";
         std::getline(std::cin, input);
 
         // 解析命令
@@ -78,6 +78,12 @@ int main() {
                 fs.ls(tokens[1]);
             else    
                 fs.ls("");
+        }
+        else if(tokens[0] == "cd"){
+            fs.changeDir(tokens[1]);
+        }
+        else if(tokens[0] == "mkdir"){
+            fs.createDir(user.current_dir_,tokens[1]);
         }
         else if(tokens[0] == "cat"){
             fs.cat(tokens[1]);

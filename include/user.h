@@ -1,7 +1,6 @@
 
 // 用户信息
 #include <string>
-
 struct OpenFile {
     int fd;           // 文件描述符
     int inum;         // inode号
@@ -13,6 +12,7 @@ struct User {
 public:
     void set_current_dir(int inum) { current_dir_ = inum; }
     int get_current_dir() const { return current_dir_; }
+    std::string get_current_dir_name() const { return current_dir_name; }
 
     void add_to_file_table(int fd, int inum, int mode) {
         //OpenFile file = { fd, inum, mode, 0 };
@@ -34,5 +34,6 @@ public:
     int group;
 //private:
     int current_dir_;
+    std::string current_dir_name = "/";
     //std::vector<OpenFile> file_table_;
 };
