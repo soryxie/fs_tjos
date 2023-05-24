@@ -130,6 +130,18 @@ bool FileSystem::write_block(int blkno, buffer* buf) {
     return true;
 }
 
+vector<string> FileSystem::split_path(string path) {
+    vector<string> tokens;
+    istringstream iss(path);
+    string token;
+    while (getline(iss, token, '/')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
+}
+
 int FileSystem::find_from_path(const string& path) {
     int ino;    // 起始查询的目录INode号
     if(path.empty()){
@@ -144,14 +156,7 @@ int FileSystem::find_from_path(const string& path) {
     }
 
     // 重新解析Path
-    vector<string> tokens;
-    istringstream iss(path);
-    string token;
-    while (getline(iss, token, '/')) {
-        if (!token.empty()) {
-            tokens.push_back(token);
-        }
-    }
+    auto tokens = split_path(path);
 
     // 依次查找每一级目录或文件
     for (const auto& token : tokens) {
@@ -196,6 +201,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
         std::cerr << "Failed to open file: " << src << std::endl;
         return false;
     }
+
     // 获取文件大小
     infile.seekg(0, std::ios::end);
     size_t size = infile.tellg();
@@ -299,5 +305,25 @@ bool FileSystem::ls(const string& path) {
         }
     }
 
+    return true;
+}
+
+bool FileSystem::cat(const string& path) {
+    int path_no = find_from_path(path);
+    if (path_no == -1) {
+        std::cerr << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
+        return false;
+    }
+
+    Inode inode = inodes[path_no];
+    /*if (inode.d_mode & S_IFDIR) {
+        std::cerr << "cat: " << path << ": Is a directory" << std::endl;
+        return false;
+    }*/
+    string str;
+    str.resize(inode.d_size+1);
+    inode.read_at(0, str.data(), inode.d_size);
+    
+    cout << str << endl;
     return true;
 }

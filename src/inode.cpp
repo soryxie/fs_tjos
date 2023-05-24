@@ -31,8 +31,6 @@ int Inode::get_block_id(int inner_id) {
     return FAIL;
 }
 
-//buffer inner_buf[BLOCK_SIZE];
-
 int Inode::read_at(int offset, char* buf, int size) {
     if (offset >= d_size) {
         return 0;
