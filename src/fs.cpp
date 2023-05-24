@@ -116,6 +116,28 @@ int FileSystem::alloc_block() {
     return blkno;
 }
 
+int FileSystem::dealloc_inode(int ino) {
+    sb.s_inode[sb.s_ninode++] = ino;
+    return 0;
+}
+
+int FileSystem::dealloc_block(int blkno) {
+    if(sb.s_nfree >= 100) // free list 满了
+    {
+        // 换一张新表
+        buffer buf[BLOCK_SIZE] = "";
+        int *table = reinterpret_cast<int *>(buf);
+        table[0] = sb.s_nfree;
+        for(int i=0;i<sb.s_nfree;i++)
+            table[i+1] = sb.s_free[i];
+        write_block(sb.s_free[0], buf);
+        sb.s_nfree = 1;
+    }
+    // 放回free list
+    sb.s_free[sb.s_nfree++] = blkno;
+    return 0;
+}
+
 bool FileSystem::read_block(int blkno, buffer* buf) {
     // 暂未实现缓存
     //cout << "read " << blkno << endl;

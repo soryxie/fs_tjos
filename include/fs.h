@@ -35,12 +35,17 @@ public:
     /* 获取一个空闲物理块 */
     int alloc_block();
 
-    /* 获取一个物理块的所有内容，返回指向这片缓存的buffer(char *)类型 */
+    /* 放回一个inode */
+    int dealloc_inode(int ino);
+
+    /* 放回一个物理块 */
+    int dealloc_block(int blkno);
+
+    /* 读取一个物理块 */
     bool read_block(int blkno, buffer* buf);
     
-    /* 写入一个物理块(全覆盖) */
+    /* 写入一个物理块 */
     bool write_block(int blkno, buffer* buf);
-
 
     /*
     * --------- 目录层 ------------

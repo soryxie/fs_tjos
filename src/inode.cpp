@@ -54,7 +54,7 @@ int Inode::read_at(int offset, char* buf, int size) {
         char *inner_buf = fs.block_cache_mgr_
                       .get_block_cache(blkno)
                       ->data();
-        //fs.read_block(blkno, inner_buf);
+
         /* 读取可能的最大部分 */
         int block_read_size = std::min<int>(BLOCK_SIZE - block_offset, size - read_size);
         memcpy(buf + read_size, inner_buf + block_offset, block_read_size);
@@ -99,10 +99,6 @@ int Inode::write_at(int offset, const char* buf, int size) {
 
         /* 写入可能的最大部分 */
         int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
-        
-        /* 是否读原本的内容(有cache不考虑了，都需要进缓存才行) */
-        //if(block_offset == 0 && block_write_size < BLOCK_SIZE) // 要用到原本的内容
-            //fs.read_block(blkno, inner_buf);
 
         char *inner_buf = fs.block_cache_mgr_
                 .get_block_cache(blkno)
@@ -110,7 +106,6 @@ int Inode::write_at(int offset, const char* buf, int size) {
         fs.block_cache_mgr_.get_block_cache(blkno)->modified_ = true;
 
         memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
-        //fs.write_block(blkno, inner_buf);
         written_size += block_write_size;
         pos += block_write_size;
     }
@@ -129,7 +124,14 @@ int Inode::push_back_block() {
     if(blkno == FAIL) return FAIL;
     d_addr[d_size / BLOCK_SIZE] = blkno;
     return blkno;
+}
 
+int Inode::pop_back_block() {
+    int blkno = d_addr[d_size / BLOCK_SIZE];
+    if(blkno == 0) return FAIL;
+    fs.dealloc_block(blkno);
+    d_addr[d_size / BLOCK_SIZE] = 0;
+    return 0;
 }
 
 vector<DirectoryEntry> Inode::get_entry() {
@@ -155,9 +157,6 @@ int Inode::init_as_dir(int ino, int fa_ino) {
     auto cache_blk = fs.block_cache_mgr_.get_block_cache(sub_dir_blk);
     auto sub_entrys = (DirectoryEntry *)cache_blk->data();
     cache_blk->modified_ = true;
-    //auto sub_entrys = (DirectoryEntry *)inner_buf;
-    //fs.read_block(sub_dir_blk, inner_buf);
-    //memset(sub_entrys, 0, BLOCK_SIZE);
     DirectoryEntry dot_entry(ino, 
                         ".", 
                         DirectoryEntry::FileType::Directory);
@@ -166,7 +165,6 @@ int Inode::init_as_dir(int ino, int fa_ino) {
                                 DirectoryEntry::FileType::Directory);
     sub_entrys[0] = dot_entry;
     sub_entrys[1] = dotdot_entry;
-    //fs.write_block(sub_dir_blk, inner_buf);
     d_size += ENTRY_SIZE*2;
     return 0;
 }
@@ -196,26 +194,49 @@ int Inode::create_file(const string& filename, bool is_dir) {
     }
     
     int blknum = entrynum / ENTRYS_PER_BLOCK;
-    //DirectoryEntry entry_block[ENTRYS_PER_BLOCK];
 
 
     auto cache_blk = fs.block_cache_mgr_.get_block_cache(get_block_id(blknum));
     auto entry_block = (DirectoryEntry *)cache_blk->data();
     cache_blk->modified_ = true;
 
-
-
-    //fs.read_block(get_block_id(blknum), (buffer *)entry_block); // 读取目录文件内容
+    // 读取目录文件内容
     DirectoryEntry new_entry(ino, 
                             filename.c_str(), 
                             is_dir? DirectoryEntry::FileType::Directory : DirectoryEntry::FileType::RegularFile);
     entry_block[entrynum % ENTRYS_PER_BLOCK] = new_entry;
-    //fs.write_block(get_block_id(blknum), (buffer *)entry_block); // 写回目录文件内容
 
     // 更新目录文件inode
     d_size += ENTRY_SIZE;
-    //inodes[dir].d_mtime = get_cur_time();
     
+    return ino;
+}
+
+int Inode::delete_file_entry(const string& filename) {
+    auto entrys = get_entry();
+    int ino;
+
+    bool found = false;
+    for (int i=0; i<entrys.size(); i++) {
+        if (found) {                            // 删除节点之后，后续的目录项前移
+            entrys[i-1] = entrys[i];
+        }
+        if (entrys[i].m_ino && strcmp(entrys[i].m_name, filename.c_str()) == 0) {
+            ino = entrys[i].m_ino;
+            found = true;
+        }
+    }
+    if(!found) {
+        std::cerr << "deleteFile: File not found." << std::endl;
+        return FAIL;
+    }
+
+    d_size -= ENTRY_SIZE;                       // 目录文件收缩
+
+    if (d_size % BLOCK_SIZE == 0) {             // 需要弹出最后一块物理块
+        push_back_block();
+    }
+
     return ino;
 }
 

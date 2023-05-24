@@ -25,18 +25,16 @@ public:
 	int push_back_block();
 	int pop_back_block();
 	
-	//char *read_block(int blk_id);
-	//bool write_block(int blk_id, char *buffer);
-	
 	int read_at(int offset, char *buf, int size);
 	int write_at(int offset, const char *buf, int size);
 	
 	/* dir inode only */
 	int init_as_dir(int ino, int fa_ino);
-	std::vector<DirectoryEntry> get_entry();
 	int find_file(const std::string &name);
 	int create_file(const std::string &name, bool is_dir);
-	int delete_file(const std::string &name);
+	int delete_file_entry(const std::string &name);   // 删除目录项，返回Inode号，但是没有删除Inode
+
+	std::vector<DirectoryEntry> get_entry();
 
 public:
 	/*-------------------------内存Inode独有成员------------------------------*/
