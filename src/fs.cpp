@@ -167,44 +167,33 @@ int FileSystem::find_from_path(const string& path) {
     return ino;
 }
 
-void FileSystem::set_current_dir_name(std::string& path) 
+void FileSystem::set_current_dir_name(std::string& token) {
+    std::vector<std::string> paths = split_path(token);
+    for (auto& path : paths)
     {
-        // 重新解析Path
-        std::vector<std::string> tokens;
-        std::istringstream iss(path);
-        std::string token;
-        while (getline(iss, token, '/')) 
+        if (path == "..") 
         {
-            if (!token.empty()) {
-                tokens.push_back(token);
-            }
-        }
-
-        // 依次查找每一级目录或文件
-        for (const auto& token : tokens)
-        {  
-            if (token == "..") 
+            if(user_->current_dir_name !="/")
             {
-                if(user_->current_dir_name !="/")
-                {
-                    size_t pos = user_->current_dir_name.rfind('/');
-                    user_->current_dir_name = user_->current_dir_name.substr(0, pos);
-                    if(user_->current_dir_name == "")
-                        user_->current_dir_name = "/";
-                }
-                
-            } 
-            else if (token == ".") {}
-            else
-            {
-                if (user_->current_dir_name.back() != '/') 
-                {
-                    user_->current_dir_name += '/';
-                }
-                user_->current_dir_name += path;
+                size_t pos = user_->current_dir_name.rfind('/');
+                user_->current_dir_name = user_->current_dir_name.substr(0, pos);
+                if(user_->current_dir_name == "")
+                    user_->current_dir_name = "/";
             }
+            
+        } 
+        else if (path == ".") {}
+        else
+        {
+            if (user_->current_dir_name.back() != '/') 
+            {
+                user_->current_dir_name += '/';
+            }
+            user_->current_dir_name += path;
         }
     }
+}
+    
 
 
 /**
@@ -268,8 +257,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     return true;
 }
 
-bool FileSystem::initialize_from_external_directory(const string& path, const int root_no)
-{
+bool FileSystem::initialize_from_external_directory(const string& path, const int root_no) {
     if(inodes[ROOT_INO].d_size == 0)
         inodes[ROOT_INO].init_as_dir(ROOT_INO, ROOT_INO);
     DIR *pDIR = opendir((path + '/').c_str());
@@ -365,31 +353,40 @@ bool FileSystem::ls(const string& path) {
     return true;
 }
 
-bool FileSystem::changeDir(std::string& dirname) {
-    int path_no = find_from_path(dirname);
-    if (path_no == FAIL) 
-    {
-        std::cerr << "cd: cannot find '" << dirname << "': No such file or directory" << std::endl;
-        return false;
+int FileSystem::changeDir(std::string& dirname) {
+    // 找到目标文件所在目录的inode编号
+    int dir;
+    if(dirname.rfind('/') == -1)
+        dir = user_->current_dir_;
+    else {
+        dir = find_from_path(dirname.substr(0, dirname.rfind('/')));
+        if (dir == FAIL) {
+            std::cerr << "Failed to find directory: " << dirname.substr(0, dirname.rfind('/')) << std::endl;
+            return FAIL;
+        }
     }
-
+    int path_no = find_from_path(dirname);
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
-    auto entries = inodes[user_->current_dir_].get_entry();
+    auto entries = inodes[dir].get_entry();
     for (auto& entry : entries)
     {
         if(entry.m_ino == path_no)
         {
-            auto type = entry.m_type;
-            if(type != DirectoryEntry::FileType::Directory)
+            if(entry.m_type != DirectoryEntry::FileType::Directory)
             {
                 std::cerr << "'" << dirname << "'is not a directory" << std::endl;
-                return false;
+                return FAIL;
+            }
+            else
+            {
+                user_->set_current_dir(path_no);
+                set_current_dir_name(dirname);
+                return 0;
             }
         }
     } 
-    user_->set_current_dir(path_no);
-    set_current_dir_name(dirname);
-    return true;
+    std::cerr << "Failed to find directory: " << dirname << std::endl;
+    return FAIL;
 }
 
 int FileSystem::createDir(const int current_dir, const std::string& dirname) {
