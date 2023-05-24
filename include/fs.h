@@ -21,10 +21,8 @@ private:
 
     BlockCacheMgr block_cache_mgr_;
 
-private:
-    /*
-    * --------- 工具 -------------
-    */
+public:
+
     std::vector<std::string> split_path(std::string path);
 
     /*
@@ -94,7 +92,7 @@ public:
     bool renameFile(const std::string& filename, const std::string& newname);
     //修改文件名
 
-    bool changeDir(std::string& dirname);
+    int changeDir(std::string& dirname);
     //更改当前目录到指定目录
 
     bool ls(const std::string& path);
