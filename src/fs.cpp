@@ -69,10 +69,11 @@ FileSystem::~FileSystem() {
         for (int j = 0; j < 10; j++)
             dinodes[i].d_addr[j] = inodes[i].d_addr[j];
     }
-    disk_.write(reinterpret_cast<char*>(&inodes[0]), sizeof(DiskInode)*INODE_NUM);
+    disk_.write(reinterpret_cast<char*>(&dinodes[0]), sizeof(DiskInode)*INODE_NUM);
 
     // 关闭文件
-    disk_.close();
+    //cout<<"close"<<endl;
+    //disk_.close();
 }
 
 int FileSystem::alloc_inode() {

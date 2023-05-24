@@ -4,15 +4,22 @@ extern FileSystem fs;
 
 BlockCache::BlockCache() {}
 
+//#include<iostream>
 BlockCache::BlockCache(int block_id) {
     modified_ = false;
     block_id_ = block_id;
     lock_ = 0;
+    //std::cout<<"read" << block_id << std::endl;
     fs.read_block(block_id_, cache_);
+}
+
+BlockCacheMgr::BlockCacheMgr() {
+    ;
 }
 
 BlockCache::~BlockCache() {
     if (modified_) {
+        //std::cout<<"write" << block_id_ << std::endl;
         fs.write_block(block_id_, cache_);
     }
 }
@@ -32,4 +39,8 @@ BlockCache *BlockCacheMgr::get_block_cache(int block_id) {
         cache_map_[block_id] = BlockCache(block_id);
     }
     return &cache_map_[block_id];
+}
+
+BlockCacheMgr::~BlockCacheMgr() {
+    cache_map_.clear();
 }
