@@ -170,12 +170,9 @@ int FileSystem::find_from_path(const string& path) {
 
 void FileSystem::set_current_dir_name(std::string& token) {
     std::vector<std::string> paths = split_path(token);
-    for (auto& path : paths)
-    {
-        if (path == "..") 
-        {
-            if(user_->current_dir_name !="/")
-            {
+    for (auto& path : paths) {
+        if (path == "..")  {
+            if(user_->current_dir_name !="/") {
                 size_t pos = user_->current_dir_name.rfind('/');
                 user_->current_dir_name = user_->current_dir_name.substr(0, pos);
                 if(user_->current_dir_name == "")
@@ -184,10 +181,8 @@ void FileSystem::set_current_dir_name(std::string& token) {
             
         } 
         else if (path == ".") {}
-        else
-        {
-            if (user_->current_dir_name.back() != '/') 
-            {
+        else {
+            if (user_->current_dir_name.back() != '/') {
                 user_->current_dir_name += '/';
             }
             user_->current_dir_name += path;
@@ -195,8 +190,6 @@ void FileSystem::set_current_dir_name(std::string& token) {
     }
 }
     
-
-
 /**
 * 从外部文件读取
 * 写入TJ_FS
@@ -369,17 +362,13 @@ int FileSystem::changeDir(std::string& dirname) {
     int path_no = find_from_path(dirname);
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
     auto entries = inodes[dir].get_entry();
-    for (auto& entry : entries)
-    {
-        if(entry.m_ino == path_no)
-        {
-            if(entry.m_type != DirectoryEntry::FileType::Directory)
-            {
+    for (auto& entry : entries) {
+        if(entry.m_ino == path_no) {
+            if(entry.m_type != DirectoryEntry::FileType::Directory) {
                 std::cerr << "'" << dirname << "'is not a directory" << std::endl;
                 return FAIL;
             }
-            else
-            {
+            else {
                 user_->set_current_dir(path_no);
                 set_current_dir_name(dirname);
                 return 0;
