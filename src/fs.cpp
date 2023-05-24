@@ -193,18 +193,11 @@ void FileSystem::set_current_dir_name(std::string& path)
                 if(user_->current_dir_name !="/")
                 {
                     size_t pos = user_->current_dir_name.rfind('/');
-                    if (pos != std::string::npos) 
-                    {
-                        user_->current_dir_name = user_->current_dir_name.substr(0, pos);
-                    } 
-                    else 
-                    {
-                        user_->current_dir_name = "/";
-                    }
+                    user_->current_dir_name = user_->current_dir_name.substr(0, pos);
                     if(user_->current_dir_name == "")
                         user_->current_dir_name = "/";
                 }
-                return;
+                
             } 
             else if (token == ".") {}
             else
@@ -384,13 +377,32 @@ bool FileSystem::changeDir(std::string& dirname)
         std::cerr << "cd: cannot find '" << dirname << "': No such file or directory" << std::endl;
         return false;
     }
+    
+    //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
+    auto entries = inodes[user_->current_dir_].get_entry();
+    for (auto& entry : entries)
+    {
+        if(entry.m_ino == path_no)
+        {
+            auto type = entry.m_type;
+            if(type != DirectoryEntry::FileType::Directory)
+            {
+                std::cerr << "'" << dirname << "'is not a directory" << std::endl;
+                return false;
+            }
+        }
+    }
+    
     user_->set_current_dir(path_no);
     set_current_dir_name(dirname);
     return true;
 }
 
-int FileSystem::createDir(const int dir, const std::string& dirname)
+int FileSystem::createDir(const std::string& dirname)
 {
-    return 0;
-    //path_no = user_->current_dir_;
+    int path_no = user_->current_dir_;
+    path_no = inodes[path_no].create_file(dirname, true);
+    cout << "make folder: " << dirname << " success! inode:" << path_no << endl;
+    return path_no;
+
 }

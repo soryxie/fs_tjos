@@ -62,8 +62,8 @@ public:
     int createFile(const int dir, const std::string& filename, DirectoryEntry::FileType type);
     //在dir目录下创建一个新文件
 
-    int createDir(const int dir, const std::string& dirname);
-    //在dir目录下创建一个新目录
+    int createDir(const std::string& dirname);
+    //在当前目录下创建一个新目录,返回值是该目录的ino
 
     bool createRootDir();
     // 创建根目录

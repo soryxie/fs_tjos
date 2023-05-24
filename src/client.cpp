@@ -55,7 +55,7 @@ int main() {
         //auto entries = fs.inode.get_entry();
         //auto entry = entries[user.get_current_dir()]
         //string name(entry.m_name);
-        cout << ">>"<< user.get_current_dir_name() << "$ ";
+        cout << "$ "<< user.get_current_dir_name() << ">>";
         std::getline(std::cin, input);
 
         // 解析命令
@@ -84,6 +84,9 @@ int main() {
         }
         else if(tokens[0] == "cd"){
             fs.changeDir(tokens[1]);
+        }
+        else if(tokens[0] == "mkdir"){
+            fs.createDir(tokens[1]);
         }
         /* else if(tokens[0] == "mkdir"){
             fs.createDir(tokens[1]);
