@@ -163,7 +163,7 @@ int Inode::init_as_dir(int ino, int fa_ino) {
     auto cache_blk = fs.block_cache_mgr_.get_block_cache(sub_dir_blk);
     auto sub_entrys = (DirectoryEntry *)cache_blk->data();
     cache_blk->modified_ = true;
-    DirectoryEntry dot_entry(ino, 
+    DirectoryEntry dot_entry(ino,   // TODO : change initialization
                         ".", 
                         DirectoryEntry::FileType::Directory);
     DirectoryEntry dotdot_entry(fa_ino, 
@@ -195,18 +195,24 @@ int Inode::create_file(const string& filename, bool is_dir) {
         std::cerr << "createFile: No free inode" << std::endl;
         return -1;
     }
+
+    // 更改文件类型
     if (is_dir) {
-        fs.inodes[ino].init_as_dir(ino, i_ino); //TODO 换成INode类
+        fs.inodes[ino].d_mode |= FileType::Directory;
+        fs.inodes[ino].init_as_dir(ino, i_ino);
+    }
+    else {
+        fs.inodes[ino].d_mode |= FileType::RegularFile;
     }
     
+    // 更新目录文件内容
     int blknum = entrynum / ENTRYS_PER_BLOCK;
-
 
     auto cache_blk = fs.block_cache_mgr_.get_block_cache(get_block_id(blknum));
     auto entry_block = (DirectoryEntry *)cache_blk->data();
     cache_blk->modified_ = true;
 
-    // 读取目录文件内容
+    // 创建新目录项
     DirectoryEntry new_entry(ino, 
                             filename.c_str(), 
                             is_dir? DirectoryEntry::FileType::Directory : DirectoryEntry::FileType::RegularFile);

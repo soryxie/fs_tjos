@@ -84,7 +84,6 @@ int FileSystem::alloc_inode() {
     inodes[ino].d_uid = user_->uid;
     inodes[ino].d_gid = user_->group;
     
-
     // 获取当前时间的Unix时间戳
     inodes[ino].d_atime = inodes[ino].d_mtime = get_cur_time();
 
@@ -139,7 +138,6 @@ int FileSystem::dealloc_block(int blkno) {
 }
 
 bool FileSystem::read_block(int blkno, buffer* buf) {
-    // 暂未实现缓存
     //cout << "read " << blkno << endl;
     disk_.seekg(OFFSET_DATA + blkno*BLOCK_SIZE, std::ios::beg);
     disk_.read(buf, BLOCK_SIZE);
@@ -190,8 +188,8 @@ int FileSystem::find_from_path(const string& path) {
     return ino;
 }
 
-void FileSystem::set_current_dir_name(std::string& token) {
-    std::vector<std::string> paths = split_path(token);
+void FileSystem::set_current_dir_name(string& token) {
+    vector<string> paths = split_path(token);
     for (auto& path : paths) {
         if (path == "..")  {
             if(user_->current_dir_name !="/") {
@@ -200,7 +198,6 @@ void FileSystem::set_current_dir_name(std::string& token) {
                 if(user_->current_dir_name == "")
                     user_->current_dir_name = "/";
             }
-            
         } 
         else if (path == ".") {}
         else {
@@ -287,7 +284,6 @@ int FileSystem::initialize_from_external_directory(const string& path, const int
             if (Name == "." || Name == "..")
                 continue;
 
-
             struct stat buf;
             if (!lstat((path + '/' + Name).c_str(), &buf))
             {
@@ -359,7 +355,7 @@ int FileSystem::ls(const string& path) {
 
             //输出文件名
             cout << name;
-            if (entry.m_type == DirectoryEntry::FileType::Directory) {
+            if (child_inode.d_mode & Inode::FileType::Directory) {
                 cout << "/";
             }
             cout << endl;
@@ -375,29 +371,24 @@ int FileSystem::changeDir(string& dirname) {
     if(dirname.rfind('/') == -1)
         dir = user_->current_dir_;
     else {
-        dir = find_from_path(dirname.substr(0, dirname.rfind('/')));
+        dir = find_from_path(dirname);
         if (dir == FAIL) {
-            std::cerr << "Failed to find directory: " << dirname.substr(0, dirname.rfind('/')) << std::endl;
+            cerr << "Failed to find directory: " << dirname << endl;
             return FAIL;
         }
     }
-    int path_no = find_from_path(dirname);
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
-    auto entries = inodes[dir].get_entry();
-    for (auto& entry : entries) {
-        if(entry.m_ino == path_no) {
-            if(entry.m_type != DirectoryEntry::FileType::Directory) {
-                std::cerr << "'" << dirname << "'is not a directory" << std::endl;
-                return FAIL;
-            }
-            else {
-                user_->set_current_dir(path_no);
-                set_current_dir_name(dirname);
-                return 0;
-            }
-        }
-    } 
-    std::cerr << "Failed to find directory: " << dirname << std::endl;
+    auto dir_inode = inodes[dir];
+    if(dir_inode.d_mode & Inode::FileType::Directory == 0) {
+        cerr << "'" << dirname << "'is not a directory" << endl;
+        return FAIL;
+    }
+    else {  
+        // 检查通过，设置cur_dir的 INode 和 路径字符串 
+        user_->set_current_dir(dir); 
+        set_current_dir_name(dirname);
+        return 0;
+    }
     return FAIL;
 }
 
