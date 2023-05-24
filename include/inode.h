@@ -6,8 +6,7 @@
 class Inode
 {
 public:
-	enum INodeFlag
-	{
+	enum INodeFlag {
 		ILOCK = 0x1,		/* 索引节点上锁 */
 		IUPD  = 0x2,		/* 内存inode被修改过，需要更新相应外存inode */
 		IACC  = 0x4,		/* 内存inode被访问过，需要修改最近一次访问时间 */
@@ -16,6 +15,13 @@ public:
 		ITEXT = 0x20		/* 内存inode对应进程图像的正文段 */
 	};
 	
+	enum FileType {
+        Unknown = 0x40,
+        RegularFile = 0x80,
+        Directory = 0x100,
+        Link = 0x200
+    };
+
 	Inode() {;};
 	~Inode() {;};
 
@@ -27,6 +33,8 @@ public:
 	
 	int read_at(int offset, char *buf, int size);
 	int write_at(int offset, const char *buf, int size);
+
+	int clear();
 	
 	/* dir inode only */
 	int init_as_dir(int ino, int fa_ino);
@@ -42,24 +50,18 @@ public:
 	int		i_lock;			/* 该内存inode的锁 */
 
 	/*---------------------以下是DiskInode成员，属于磁盘部分--------------------------*/
-	unsigned int d_mode;	/* 状态的标志位，定义见enum INodeFlag */
-	int		d_nlink;		/* 文件联结计数，即该文件在目录树中不同路径名的数量 ？？？*/
+	unsigned int d_mode;	/* 状态的标志位，定义见enum INodeFlag enum FileType*/
+	int		d_nlink;		/* 文件联结计数，即该文件在目录树中不同路径名的数量 */
 	
 	short	d_uid;			/* 文件所有者的用户标识数 */
 	short	d_gid;			/* 文件所有者的组标识数 */
 	
 	int		d_size;			/* 文件大小，字节为单位 */
-	int		d_addr[10];		/* 用于文件逻辑块号和物理块号转换的基本索引表 ？？？*/
+	int		d_addr[10];		/* 用于文件逻辑块号和物理块号转换的基本索引表 */
 	
 	int		d_atime;		/* 最后访问时间 */
 	int		d_mtime;		/* 最后修改时间 */
 };
-
-
-
-
-
-
 
 
 

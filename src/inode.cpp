@@ -70,13 +70,19 @@ int Inode::resize(int size) {
         return 0;
     }
 
-    int append_block_num = (size + BLOCK_SIZE - 1) / BLOCK_SIZE - (d_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    // 计算实际增长的块数
+    d_size = (d_size + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    int append_block_num = (size + BLOCK_SIZE - 1) / BLOCK_SIZE - d_size / BLOCK_SIZE;
+
+    // 逐个push_back
     while(append_block_num--) {
-        if (push_back_block() == FAIL) {
+        if (push_back_block() == FAIL)
             return FAIL;
-        }
+        d_size += BLOCK_SIZE;
     }
 
+    // 重置为规定大小
+    d_size = size;
     return 0;
 }
 
@@ -249,4 +255,15 @@ int Inode::find_file(const string &name) {
         }
     }
     return FAIL;
+}
+
+int Inode::clear() {
+    for (int i=0; i<10; i++) {
+        if (d_addr[i]) {
+            fs.dealloc_block(d_addr[i]);
+            d_addr[i] = 0;
+        }
+    }
+    fs.dealloc_inode(i_ino);
+    return 0;
 }

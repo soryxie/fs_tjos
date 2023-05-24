@@ -216,7 +216,7 @@ void FileSystem::set_current_dir_name(std::string& token) {
 * 从外部文件读取
 * 写入TJ_FS
 */
-bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
+int FileSystem::saveFile(const std::string& src, const std::string& filename) {
     // 找到目标文件所在目录的inode编号
     int dir;
     if(filename.rfind('/') == -1)
@@ -273,7 +273,7 @@ bool FileSystem::saveFile(const std::string& src, const std::string& filename) {
     return true;
 }
 
-bool FileSystem::initialize_from_external_directory(const string& path, const int root_no) {
+int FileSystem::initialize_from_external_directory(const string& path, const int root_no) {
     if(inodes[ROOT_INO].d_size == 0)
         inodes[ROOT_INO].init_as_dir(ROOT_INO, ROOT_INO);
     DIR *pDIR = opendir((path + '/').c_str());
@@ -322,7 +322,7 @@ bool FileSystem::initialize_from_external_directory(const string& path, const in
     return true;
 }
 
-bool FileSystem::ls(const string& path) {
+int FileSystem::ls(const string& path) {
     int path_no;
     if(path.empty())
         path_no = user_->current_dir_;
@@ -369,7 +369,7 @@ bool FileSystem::ls(const string& path) {
     return true;
 }
 
-int FileSystem::changeDir(std::string& dirname) {
+int FileSystem::changeDir(string& dirname) {
     // 找到目标文件所在目录的inode编号
     int dir;
     if(dirname.rfind('/') == -1)
@@ -401,13 +401,13 @@ int FileSystem::changeDir(std::string& dirname) {
     return FAIL;
 }
 
-int FileSystem::createDir(const int current_dir, const std::string& dirname) {
+int FileSystem::createDir(const int current_dir, const string& dirname) {
     int path_no = inodes[current_dir].create_file(dirname, true);
     cout << "make folder: " << dirname << " success! inode:" << path_no << endl;
     return path_no;
 }
 
-bool FileSystem::cat(const string& path) {
+int FileSystem::cat(const string& path) {
     int path_no = find_from_path(path);
     if (path_no == -1) {
         std::cerr << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
@@ -425,4 +425,8 @@ bool FileSystem::cat(const string& path) {
     
     cout << str << endl;
     return true;
+}
+
+int FileSystem::deleteFile(const string& filename) {
+    return 0;
 }
