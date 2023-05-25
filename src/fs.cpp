@@ -353,7 +353,8 @@ int FileSystem::initialize_from_external_directory(const string& path, const int
     return true;
 }
 
-int FileSystem::ls(const string& path) {
+string FileSystem::ls(const string& path) {
+    ostringstream oss;
     int path_no;
     if(path.empty())
         path_no = user_->current_dir_;
@@ -361,15 +362,15 @@ int FileSystem::ls(const string& path) {
         path_no = find_from_path(path);
 
     if (path_no == FAIL) {
-        std::cerr << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
-        return false;
+        oss << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
+        return oss.str();
     }
 
     Inode &inode = inodes[path_no];
     // 检查是否是目录
     if(!(inode.d_mode & Inode::FileType::Directory)) {
-        cerr << "'" << path << "' is not a directory" << endl;
-        return FAIL;
+        oss << "'" << path << "' is not a directory" << endl;
+        return oss.str();
     }
 
     auto entries = inode.get_entry();
@@ -379,30 +380,30 @@ int FileSystem::ls(const string& path) {
             string name(entry.m_name);
 
             //输出用户            
-            cout.width(7); 
-            cout << user_->username;
+            oss.width(7); 
+            oss << user_->username;
             
             //输出文件大小
-            cout.width(5);
-            cout << child_inode.d_size  << "B ";
+            oss.width(5);
+            oss << child_inode.d_size  << "B ";
 
             //输出最后修改时间
             std::time_t t_time = child_inode.d_mtime;
             std::tm* local_time = std::localtime(&t_time);  // int时间转换为当地时间
             char buffer[80];
             std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local_time);  // 格式化输出
-            std::cout << buffer << " ";
+            oss << buffer << " ";
 
             //输出文件名
-            cout << name;
+            oss << name;
             if (child_inode.d_mode & Inode::FileType::Directory) {
                 cout << "/";
             }
-            cout << endl;
+            oss << endl;
         }
     }
 
-    return true;
+    return oss.str();
 }
 
 int FileSystem::changeDir(string& dirname) {
@@ -434,11 +435,12 @@ int FileSystem::createDir(const int current_dir, const string& dirname) {
     return path_no;
 }
 
-int FileSystem::cat(const string& path) {
+string FileSystem::cat(const string& path) {
+    ostringstream oss;
     int path_no = find_from_path(path);
     if (path_no == -1) {
-        std::cerr << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
-        return false;
+        oss << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
+        return oss.str();
     }
 
     Inode &inode = inodes[path_no];
@@ -450,8 +452,8 @@ int FileSystem::cat(const string& path) {
     str.resize(inode.d_size+1);
     inode.read_at(0, str.data(), inode.d_size);
     
-    cout << str << endl;
-    return true;
+    oss << str << endl;
+    return oss.str();
 }
 
 int FileSystem::deleteFile(const string& filename) {
