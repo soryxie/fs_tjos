@@ -9,21 +9,8 @@
 using namespace std;
 
 extern User login();
-/*
-template<typename... Args>
-struct CommandInfo {
-    using HandlerFn = void(*)(Args...);
-    HandlerFn Handler;
-    int num_args;
-    std::string help;
 
-    // 构造函数，用于初始化 CommandInfo
-    CommandInfo(HandlerFn handler, int num_args, const std::string& help_info)
-        : Handler(handler), num_args(num_args), help(help) {}
-};
-
-map<std::string, CommandInfo <string> > cmd;
-
+/* 
 void init_command() {
     cmd["ls"] = {FileSystem::listDir, 0, "ls"};
     cmd["mkdir"] = {FileSystem::createDir, 1, "mkdir <dirname>"};
@@ -89,6 +76,9 @@ int main() {
         else if(tokens[0] == "rm"){
             fs.deleteFile(tokens[1]);
         }
+        else if(tokens[0] == "cp"){
+            fs.copyFile(tokens[1], tokens[2]);
+        }
         else if(tokens[0] == "exit"){
             break;
         }
@@ -99,46 +89,15 @@ int main() {
         else if(tokens[0] == "mv"){
             fs.moveFile(tokens[1], tokens[2]);
         }
-        else if(tokens[0] == "cp"){
-            fs.copyFile(tokens[1], tokens[2]);
-        }
         else if(tokens[0] == "write"){
             fs.writeFile(tokens[1]);
         }
         else if(tokens[0] == "rename"){
             fs.renameFile(tokens[1], tokens[2]);
         }
-        else if(tokens[0] == "rm"){
-            fs.deleteFile(tokens[1]);
-        }
         else if(tokens[0] == "help"){
             fs.help();
         } */
-
-
-        
-        // 在命令列表中查找对应的命令
-        /*const auto& command_info = cmd.find(tokens[0]);
-        if (command_info != cmd.end()) {
-            const auto& command = command_info->second;
-            // 检查命令参数数量是否正确
-            if (tokens.size() - 1 != command.num_args) {
-                std::cout << "Invalid number of arguments. Usage: " << command.help_info << std::endl;
-                continue;
-            }
-            // 执行命令
-            if (command.num_args == 0) {
-                (fs.*command.handler)();
-            } else if (command.num_args == 1) {
-                (fs.*command.handler)(tokens[1]);
-            } else if (command.num_args == 2) {
-                (fs.*command.handler)(tokens[1], tokens[2]);
-            } else if (command.num_args == 3) {
-                (fs.*command.handler)(tokens[1], tokens[2], tokens[3]);
-            }
-        } else {
-            std::cout << "Invalid command." << std::endl;
-        }*/
     }
     return 0;
 }

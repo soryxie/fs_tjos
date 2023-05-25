@@ -35,6 +35,7 @@ public:
 	int write_at(int offset, const char *buf, int size);
 
 	int clear();
+	int copy_from(Inode &src);
 	
 	/* dir inode only */
 	int init_as_dir(int ino, int fa_ino);

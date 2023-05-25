@@ -455,3 +455,30 @@ int FileSystem::deleteFile(const string& filename) {
     inodes[ino].clear();
     return 0;
 }
+
+int FileSystem::copyFile(const string& src, const string& dst) {
+    int src_ino = find_from_path(src);
+    if(src_ino == FAIL) {
+        cerr << "cp: cannot stat '" << src << "': No such file or directory" << endl;
+        return FAIL;
+    }
+
+    int dst_dir;
+    if(dst.rfind('/') == -1)
+        dst_dir = user_->current_dir_;
+    else {
+        dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
+    }
+
+    int dst_ino = find_from_path(dst);
+    if(dst_ino != FAIL) {
+        cerr << "cp: cannot stat '" << dst << "': File exists" << endl;
+        return FAIL;
+    }
+
+    // 复制inode和数据
+    int new_ino = inodes[dst_dir].create_file(dst.substr(dst.rfind('/')+1), false);
+    inodes[new_ino].copy_from(inodes[src_ino]);
+
+    return 0;
+}

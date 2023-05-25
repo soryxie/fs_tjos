@@ -277,3 +277,36 @@ int Inode::clear() {
     fs.dealloc_inode(i_ino);
     return 0;
 }
+
+int Inode::copy_from(Inode &src) {
+    d_mode = src.d_mode;
+    d_size = src.d_size;
+    /* TODO change time
+    d_mtime = src.d_mtime;
+    d_atime = src.d_atime;
+    d_ctime = src.d_ctime;
+    */
+
+    /* 复制物理块内容（逐块复制） */
+    int blknum = (src.d_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    for(int i=0; i<blknum; i++) {
+        int srcno = src.get_block_id(i);
+        int new_blkno = fs.alloc_block();
+        if(new_blkno == 0) {
+            cerr << "copyFrom: No free block" << endl;
+            return FAIL;
+        }
+
+        char *src_buf = fs.block_cache_mgr_
+                            .get_block_cache(srcno)
+                            ->data();
+        char *new_buf = fs.block_cache_mgr_
+                            .get_block_cache(new_blkno)
+                            ->data();
+        memcpy(new_buf, src_buf, BLOCK_SIZE);
+        fs.block_cache_mgr_.get_block_cache(new_blkno)->modified_ = true;
+
+        d_addr[i++] = new_blkno;
+    }
+    return 0;
+}

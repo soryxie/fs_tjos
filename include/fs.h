@@ -94,6 +94,9 @@ public:
     int moveFile(const std::string& src, const std::string& dst);
     //将一个文件从一个目录移动到另一个目录
 
+    int copyFile(const std::string& src, const std::string& dst);
+    //将一个文件从一个目录复制到另一个目录
+
     int renameFile(const std::string& filename, const std::string& newname);
     //修改文件名
 
