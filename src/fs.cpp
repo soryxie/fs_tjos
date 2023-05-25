@@ -325,12 +325,17 @@ int FileSystem::ls(const string& path) {
     else
         path_no = find_from_path(path);
 
-    if (path_no == -1) {
+    if (path_no == FAIL) {
         std::cerr << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
         return false;
     }
 
-    Inode inode = inodes[path_no];
+    Inode &inode = inodes[path_no];
+    // 检查是否是目录
+    if(!(inode.d_mode & Inode::FileType::Directory)) {
+        cerr << "'" << path << "' is not a directory" << endl;
+        return FAIL;
+    }
 
     auto entries = inode.get_entry();
     for (auto& entry : entries) {
@@ -372,10 +377,10 @@ int FileSystem::changeDir(string& dirname) {
         cerr << "Failed to find directory: " << dirname << endl;
         return FAIL;
     }
-    
+
     //检查进入的是否是一个目录，如果进入的是文件则拒绝cd
     auto dir_inode = inodes[dir];
-    if(dir_inode.d_mode & Inode::FileType::Directory == 0) {
+    if((dir_inode.d_mode & Inode::FileType::Directory) == 0) {
         cerr << "'" << dirname << "'is not a directory" << endl;
         return FAIL;
     }
@@ -401,7 +406,7 @@ int FileSystem::cat(const string& path) {
         return false;
     }
 
-    Inode inode = inodes[path_no];
+    Inode &inode = inodes[path_no];
     /*if (inode.d_mode & S_IFDIR) {
         std::cerr << "cat: " << path << ": Is a directory" << std::endl;
         return false;

@@ -154,6 +154,8 @@ vector<DirectoryEntry> Inode::get_entry() {
 }
 
 int Inode::init_as_dir(int ino, int fa_ino) {
+    d_mode |= FileType::Directory;
+
     int sub_dir_blk = push_back_block();
     if (sub_dir_blk == 0) {
         std::cerr << "createFile: No free block" << std::endl;
@@ -163,12 +165,8 @@ int Inode::init_as_dir(int ino, int fa_ino) {
     auto cache_blk = fs.block_cache_mgr_.get_block_cache(sub_dir_blk);
     auto sub_entrys = (DirectoryEntry *)cache_blk->data();
     cache_blk->modified_ = true;
-    DirectoryEntry dot_entry(ino,   // TODO : change initialization
-                        ".", 
-                        DirectoryEntry::FileType::Directory);
-    DirectoryEntry dotdot_entry(fa_ino, 
-                                "..", 
-                                DirectoryEntry::FileType::Directory);
+    DirectoryEntry dot_entry(ino, ".");
+    DirectoryEntry dotdot_entry(fa_ino, "..");
     sub_entrys[0] = dot_entry;
     sub_entrys[1] = dotdot_entry;
     d_size += ENTRY_SIZE*2;
@@ -197,13 +195,10 @@ int Inode::create_file(const string& filename, bool is_dir) {
     }
 
     // 更改文件类型
-    if (is_dir) {
-        fs.inodes[ino].d_mode |= FileType::Directory;
+    if (is_dir) 
         fs.inodes[ino].init_as_dir(ino, i_ino);
-    }
-    else {
+    else 
         fs.inodes[ino].d_mode |= FileType::RegularFile;
-    }
     
     // 更新目录文件内容
     int blknum = entrynum / ENTRYS_PER_BLOCK;
@@ -213,9 +208,7 @@ int Inode::create_file(const string& filename, bool is_dir) {
     cache_blk->modified_ = true;
 
     // 创建新目录项
-    DirectoryEntry new_entry(ino, 
-                            filename.c_str(), 
-                            is_dir? DirectoryEntry::FileType::Directory : DirectoryEntry::FileType::RegularFile);
+    DirectoryEntry new_entry(ino, filename.c_str());
     entry_block[entrynum % ENTRYS_PER_BLOCK] = new_entry;
 
     // 更新目录文件inode
