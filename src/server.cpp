@@ -14,12 +14,11 @@
 
 using namespace std;
 
-extern User login();
-
 FileSystem fs("myDisk.img");
+User login(int clientSocket);
 
 void handleClient(int clientSocket) {
-    User user = login();
+    User user = login(clientSocket);
     user.set_current_dir(1);
     fs.set_u(&user);
 
@@ -27,37 +26,34 @@ void handleClient(int clientSocket) {
 
     // 读取客户端发送的命令行字符串
     while(true){
-        
         memset(buffer, 0, sizeof(buffer));
         int bytesRead = read(clientSocket, buffer, sizeof(buffer) - 1);
         if (bytesRead > 0) {
             // 解析命令
-            string command(buffer);
-            istringstream iss(command);
+            istringstream iss(buffer);
             string s;
             vector<string> tokens;
-            while(iss){
+            while(iss) {
                 iss >> s;
                 tokens.emplace_back(s);
             }
 
-            //啥也没输入，跳过
-            if (tokens.empty())        
-                continue;
+            // 啥也没输入，跳过
+            if (tokens.empty()) continue;
 
+            // 结果统一存入result
             string result;
             if(tokens[0] == "init"){
                 //if(fs.initialize_from_external_directory(tokens[1]) == false) {
-                if(fs.initialize_from_external_directory("test_folder") == false) {
+                if(fs.initialize_from_external_directory("test_folder") == false)
                     result = "Initialize failed!\n";
-                }
                 else
                     result = "Initialize success!\n";
             }
             else if(tokens[0] == "ls"){
                 if(tokens.size() > 2)
                     result = fs.ls(tokens[1]);
-                else    
+                else
                     result = fs.ls("");
             }
             else if(tokens[0] == "cd"){
@@ -92,23 +88,15 @@ void handleClient(int clientSocket) {
                 write(clientSocket, result.c_str(), result.length());
                 break;
             }
+            else {
+                result = "Invalid command!\n";
+            }
             // 发送结果给客户端
-            write(clientSocket, result.c_str(), result.length());
-
-
-            /* 
-            else if(tokens[0] == "touch"){
-                fs.createFile(tokens[1]);
-            }
-            else if(tokens[0] == "mv"){
-                fs.moveFile(tokens[1], tokens[2]);
-            }
-            else if(tokens[0] == "rename"){
-                fs.renameFile(tokens[1], tokens[2]);
-            }
-            else if(tokens[0] == "help"){
-                fs.help();
-            } */            
+            memset(buffer, 0, sizeof(buffer));
+            strcpy(buffer, result.c_str());
+            strcpy(buffer+result.length() + 1, user.get_current_dir_name().c_str());
+            int len = result.length() + 1 + user.get_current_dir_name().length() + 1;
+            write(clientSocket, buffer, len); 
         }
     }
     close(clientSocket);  // 关闭客户端套接字
@@ -164,3 +152,69 @@ int main() {
     return 0;
 }
 
+// 验证用户名和密码是否正确
+User verifyLogin(const string& username, const string& password) {
+    vector<User> users;
+
+    // 打开存储用户名和密码的文件
+    ifstream file("users.txt");
+    if (!file.is_open()) {
+        return User(); // 返回一个空的 User 对象
+    }
+
+    // 读取文件中的用户信息
+    while (!file.eof()) {
+        User user;
+        file >> user.uid >> user.username >> user.password >> user.group;
+        users.push_back(user);
+    }
+    file.close();
+
+    // 遍历用户列表，查找匹配的用户
+    for (int i = 0; i < users.size(); i++) {
+        if (users[i].username == username) {
+            // 验证密码是否正确
+            if (users[i].password == password) {
+                return users[i]; // 返回包含用户信息的 User 对象
+            }
+            else {
+                return User(); // 返回一个空的 User 对象表示密码错误
+            }
+        }
+    }
+    return User(); // 返回一个空的 User 对象表示用户名不存在
+}
+
+User login(int clientSocket){
+    return verifyLogin("alice","123456");
+    string username, password, reply;
+    char buffer[1024];
+    int stage = 0;
+
+    while(true){
+        memset(buffer, 0, sizeof(buffer));
+        int bytesRead = read(clientSocket, buffer, sizeof(buffer) - 1);
+        if (bytesRead > 0) {
+            if(stage == 0) {
+                username = buffer;
+                reply = "Please enter your password: ";
+                stage = 1;
+            }
+            else if(stage == 1) {
+                password = buffer;
+                // 验证登录信息
+                User user = verifyLogin(username, password);
+                if (user.username != "") {
+                    reply = "Login successful";
+                    write(clientSocket, reply.c_str(), reply.length());
+                    return user;
+                }
+                else {
+                    reply = "Incorrect username or password";
+                    stage = 0;
+                }
+            }
+            write(clientSocket, reply.c_str(), reply.length());
+        }
+    }
+}

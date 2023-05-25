@@ -31,11 +31,17 @@ int main() {
         return 1;
     }
 
+    cout << "Connected to server" << endl;
     // 进入交互循环
+    string input, server_reply, head;
     while (true) {
+        // 显示路径提示符
+        head = buffer+server_reply.length()+1;
+        if(head.length())
+            cout << "[" << head << "] ";
+        cout << ">> ";
+
         // 读取用户输入
-        string input;
-        cout << "> ";
         getline(cin, input);
 
         // 发送数据到服务器
@@ -45,6 +51,7 @@ int main() {
         }
 
         // 接收数据从服务器
+        memset(buffer, 0, sizeof(buffer));
         int numBytes = recv(clientSocket, buffer, sizeof(buffer), 0);
         if (numBytes == -1) {
             cerr << "Failed to receive data from server" << endl;
@@ -55,8 +62,8 @@ int main() {
         }
 
         // 显示服务器响应
-        buffer[numBytes] = '\0';
-        cout << buffer << endl;
+        server_reply = buffer;
+        cout << server_reply << endl;
     }
 
     // 关闭套接字
