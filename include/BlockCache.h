@@ -13,19 +13,22 @@ public:
 
 public:
     BlockCache();
-    BlockCache(int block_id);
+    BlockCache(int block_id, bool modified);
     ~BlockCache();
 
     char *data();
 };
 
 class BlockCacheMgr {
+private:
+    std::vector<int> cache_id_queue_;
+    std::map<int, BlockCache> cache_map_;
+    BlockCache &get_block_cache(int block_id, bool writable);
+
 public:
     BlockCacheMgr();
     ~BlockCacheMgr();
-    std::vector<int> cache_id_queue_;
-    std::map<int, BlockCache> cache_map_;
-
-public:
-    BlockCache *get_block_cache(int block_id);
+    
+    BlockCache &read_only_cache(int block_id);
+    BlockCache &writable_cache(int block_id);
 }; 

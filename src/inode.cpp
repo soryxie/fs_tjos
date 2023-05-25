@@ -52,8 +52,8 @@ int Inode::read_at(int offset, char* buf, int size) {
 
         /* 读块 */
         char *inner_buf = fs.block_cache_mgr_
-                      .get_block_cache(blkno)
-                      ->data();
+                      .read_only_cache(blkno)
+                      .data();
 
         /* 读取可能的最大部分 */
         int block_read_size = std::min<int>(BLOCK_SIZE - block_offset, size - read_size);
@@ -107,9 +107,8 @@ int Inode::write_at(int offset, const char* buf, int size) {
         int block_write_size = std::min<int>(BLOCK_SIZE - block_offset, size - written_size);
 
         char *inner_buf = fs.block_cache_mgr_
-                .get_block_cache(blkno)
-                ->data();
-        fs.block_cache_mgr_.get_block_cache(blkno)->modified_ = true;
+                .writable_cache(blkno)
+                .data();
 
         memcpy(inner_buf + block_offset, buf + written_size, block_write_size);
         written_size += block_write_size;
@@ -169,9 +168,10 @@ int Inode::init_as_dir(int ino, int fa_ino) {
         return -1;
     }
     // 初始化目录文件
-    auto cache_blk = fs.block_cache_mgr_.get_block_cache(sub_dir_blk);
-    auto sub_entrys = (DirectoryEntry *)cache_blk->data();
-    cache_blk->modified_ = true;
+    auto sub_entrys = (DirectoryEntry *)fs.block_cache_mgr_
+                                          .writable_cache(sub_dir_blk)
+                                          .data();
+    
     DirectoryEntry dot_entry(ino, ".");
     DirectoryEntry dotdot_entry(fa_ino, "..");
     sub_entrys[0] = dot_entry;
@@ -209,10 +209,9 @@ int Inode::create_file(const string& filename, bool is_dir) {
     
     // 更新目录文件内容
     int blknum = entrynum / ENTRYS_PER_BLOCK;
-
-    auto cache_blk = fs.block_cache_mgr_.get_block_cache(get_block_id(blknum));
-    auto entry_block = (DirectoryEntry *)cache_blk->data();
-    cache_blk->modified_ = true;
+    auto entry_block = (DirectoryEntry *)fs.block_cache_mgr_
+                                           .writable_cache(get_block_id(blknum))
+                                           .data();
 
     // 创建新目录项
     DirectoryEntry new_entry(ino, filename.c_str());
@@ -298,15 +297,14 @@ int Inode::copy_from(Inode &src) {
         }
 
         char *src_buf = fs.block_cache_mgr_
-                            .get_block_cache(srcno)
-                            ->data();
+                          .read_only_cache(srcno)
+                          .data();
         char *new_buf = fs.block_cache_mgr_
-                            .get_block_cache(new_blkno)
-                            ->data();
+                          .writable_cache(new_blkno)
+                          .data();
         memcpy(new_buf, src_buf, BLOCK_SIZE);
-        fs.block_cache_mgr_.get_block_cache(new_blkno)->modified_ = true;
 
-        d_addr[i++] = new_blkno;
+        d_addr[i++] = new_blkno; //TODO: not correct
     }
     return 0;
 }
