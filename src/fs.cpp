@@ -1,5 +1,6 @@
 #include "../include/fs.h"
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <ctime>
 #include <cstring>
@@ -380,11 +381,26 @@ int FileSystem::ls(const string& path) {
 
             //输出用户            
             cout.width(7); 
-            cout << user_->username;
+            cout << user_->username << " ";
             
             //输出文件大小
-            cout.width(5);
-            cout << child_inode.d_size  << "B ";
+            float size = child_inode.d_size;
+            if(size < 1024) {
+                cout.width(7);
+                cout << child_inode.d_size  << "B ";
+            }
+            else {
+                size = size / 1024.0;
+                if(size < 1024) {
+                    cout.width(7);
+                    cout << std::fixed << std::setprecision(2) << size << "K "; 
+                }
+                else {
+                    size = size / 1024.0;
+                    cout.width(7);
+                    cout << std::fixed << std::setprecision(2) << size << "M "; 
+                }
+            }
 
             //输出最后修改时间
             std::time_t t_time = child_inode.d_mtime;
