@@ -39,7 +39,7 @@ int Inode::get_block_id(int inner_id) {
     /* 二级索引 */
     else if(inner_id < SECOND_LEVEL_COUNT) {
         int second_level_id = inner_id - FIRST_LEVEL_COUNT;
-        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_SIZE + second_level_id / SECOND_LEVEL_SIZE];
+        int second_level_block = d_addr[DIRECT_COUNT + 2 + second_level_id / SECOND_LEVEL_SIZE];
         
         if(second_level_block == 0) return FAIL;
         int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
@@ -181,12 +181,12 @@ int Inode::push_back_block() {
     }
     else if(blk_id < SECOND_LEVEL_COUNT) {
         int second_level_id = blk_id - FIRST_LEVEL_COUNT;
-        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE];
+        int second_level_block = d_addr[DIRECT_COUNT + 2 + second_level_id / SECOND_LEVEL_SIZE];
         
         if(second_level_block == 0) {
             second_level_block = fs.alloc_block();
             if(second_level_block == 0) return FAIL;
-            d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE] = second_level_block;
+            d_addr[DIRECT_COUNT + 2 + second_level_id / SECOND_LEVEL_SIZE] = second_level_block;
         }
         int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
                                                         .writable_cache(second_level_block)
@@ -224,13 +224,17 @@ int Inode::pop_back_block() {
         int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
                                                         .writable_cache(first_level_block)
                                                         .data());
+        fs.dealloc_block(first_table[first_level_id % FIRST_LEVEL_SIZE]);
         first_table[first_level_id % FIRST_LEVEL_SIZE] = 0;
-        fs.dealloc_block(d_addr[blk_id]);
-        d_addr[blk_id] = 0;
+
+        if(first_level_id % FIRST_LEVEL_SIZE == 0){ // pop到表空了，需要释放表
+            fs.dealloc_block(first_level_block);
+            d_addr[DIRECT_COUNT + first_level_id / FIRST_LEVEL_SIZE] = 0;
+        }
     }
     else if(blk_id < SECOND_LEVEL_COUNT) {
         int second_level_id = blk_id - FIRST_LEVEL_COUNT;
-        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE];
+        int second_level_block = d_addr[DIRECT_COUNT + 2 + second_level_id / SECOND_LEVEL_SIZE];
         
         int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
                                                         .writable_cache(second_level_block)
@@ -241,9 +245,18 @@ int Inode::pop_back_block() {
         int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
                                                         .writable_cache(first_level_block)
                                                         .data());
+        fs.dealloc_block(first_table[first_level_id % FIRST_LEVEL_SIZE]);
         first_table[first_level_id % FIRST_LEVEL_SIZE] = 0;
-        fs.dealloc_block(d_addr[blk_id]);
-        d_addr[blk_id] = 0;
+        
+        if(first_level_id % FIRST_LEVEL_SIZE == 0){ // pop到一级表空了，需要释放表
+            fs.dealloc_block(first_level_block);
+            second_table[first_level_id / FIRST_LEVEL_SIZE] = 0;
+
+            if(first_level_id / FIRST_LEVEL_SIZE == 0) { //pop清空的一级表存放的二级表也空了
+                fs.dealloc_block(second_level_block);
+                d_addr[DIRECT_COUNT + 2 + second_level_id / SECOND_LEVEL_SIZE] = 0;
+            }
+        }
     }
     else {
         cerr << "pop_back_block: too large file." << endl;
