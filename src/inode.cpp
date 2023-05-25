@@ -8,11 +8,12 @@ extern FileSystem fs;
 /*
 * 针对内部的块号 inner_id 
 * 定位到对应的物理块号
-* 如果 create 为 true，那么如果对应的物理块不存在，就创建一个
 */
-const int DIRECT_COUNT=6;
-const int FIRST_LEVEL_COUNT=128;
-const int SECOND_LEVEL_COUNT=128*128;
+const int DIRECT_COUNT       = 6;
+const int FIRST_LEVEL_SIZE   = 128;
+const int FIRST_LEVEL_COUNT  = DIRECT_COUNT + FIRST_LEVEL_SIZE*2;
+const int SECOND_LEVEL_SIZE  = 128 * 128;
+const int SECOND_LEVEL_COUNT = FIRST_LEVEL_COUNT + SECOND_LEVEL_SIZE*2;
 
 int Inode::get_block_id(int inner_id) {
     // 如果 int 大于文件大小，返回 -1
@@ -24,9 +25,34 @@ int Inode::get_block_id(int inner_id) {
     if (inner_id < DIRECT_COUNT) {
         return d_addr[inner_id];
     }
+    /* 一级索引 */
     else if(inner_id < FIRST_LEVEL_COUNT) {
-        cout<<"Unimplement Error!"<<endl;
-        exit(-1);
+        int first_level_id = inner_id - DIRECT_COUNT;
+        int first_level_block = d_addr[DIRECT_COUNT + first_level_id / FIRST_LEVEL_SIZE];
+        
+        if(first_level_block == 0) return FAIL;
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .read_only_cache(first_level_block)
+                                                        .data());
+        return first_table[first_level_id % FIRST_LEVEL_SIZE];
+    }
+    /* 二级索引 */
+    else if(inner_id < SECOND_LEVEL_COUNT) {
+        int second_level_id = inner_id - FIRST_LEVEL_COUNT;
+        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_SIZE + second_level_id / SECOND_LEVEL_SIZE];
+        
+        if(second_level_block == 0) return FAIL;
+        int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .read_only_cache(second_level_block)
+                                                        .data());
+        int first_level_id = second_level_id % SECOND_LEVEL_SIZE;
+        int first_level_block = second_table[first_level_id / FIRST_LEVEL_SIZE];
+        
+        if(first_level_block == 0) return FAIL;
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                  .read_only_cache(first_level_block)
+                                  .data());
+        return first_table[first_level_id % FIRST_LEVEL_SIZE];
     }
     return FAIL;
 }
@@ -66,19 +92,26 @@ int Inode::read_at(int offset, char* buf, int size) {
 }
 
 int Inode::resize(int size) {
-    if (size <= d_size) { //TODO 收缩
-        return 0;
-    }
-
-    // 计算实际增长的块数
+    // 计算总共变动的的块数
     d_size = (d_size + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
-    int append_block_num = (size + BLOCK_SIZE - 1) / BLOCK_SIZE - d_size / BLOCK_SIZE;
+    int block_num_delta = (size + BLOCK_SIZE - 1) / BLOCK_SIZE - d_size / BLOCK_SIZE;
 
-    // 逐个push_back
-    while(append_block_num--) {
-        if (push_back_block() == FAIL)
-            return FAIL;
-        d_size += BLOCK_SIZE;
+    if(block_num_delta == 0) return 0;
+    else if(block_num_delta > 0) {
+        // 逐个push_back
+        while(block_num_delta--) {
+            if (push_back_block() == FAIL)
+                return FAIL;
+            d_size += BLOCK_SIZE;
+        }
+    }
+    else{
+        // 逐个pop_back
+        while(block_num_delta++) {
+            if (pop_back_block() == FAIL)
+                return FAIL;
+            d_size -= BLOCK_SIZE;
+        }
     }
 
     // 重置为规定大小
@@ -126,16 +159,96 @@ int Inode::write_at(int offset, const char* buf, int size) {
 
 int Inode::push_back_block() {
     int blkno = fs.alloc_block();
-    if(blkno == FAIL) return FAIL;
-    d_addr[d_size / BLOCK_SIZE] = blkno;
+    if(blkno == 0) return FAIL;
+
+    int blk_id = d_size / BLOCK_SIZE;
+    if(blk_id < DIRECT_COUNT) {
+        d_addr[blk_id] = blkno;
+    }
+    else if(blk_id < FIRST_LEVEL_COUNT) {
+        int first_level_id = blk_id - DIRECT_COUNT;
+        int first_level_block = d_addr[DIRECT_COUNT + first_level_id / FIRST_LEVEL_SIZE];
+        
+        if(first_level_block == 0) {
+            first_level_block = fs.alloc_block();
+            if(first_level_block == 0) return FAIL;
+            d_addr[DIRECT_COUNT + first_level_id / FIRST_LEVEL_SIZE] = first_level_block;
+        }
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(first_level_block)
+                                                        .data());
+        first_table[first_level_id % FIRST_LEVEL_SIZE] = blkno;
+    }
+    else if(blk_id < SECOND_LEVEL_COUNT) {
+        int second_level_id = blk_id - FIRST_LEVEL_COUNT;
+        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE];
+        
+        if(second_level_block == 0) {
+            second_level_block = fs.alloc_block();
+            if(second_level_block == 0) return FAIL;
+            d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE] = second_level_block;
+        }
+        int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(second_level_block)
+                                                        .data());
+        int first_level_id = second_level_id % SECOND_LEVEL_SIZE;
+        int first_level_block = second_table[first_level_id / FIRST_LEVEL_SIZE];
+        
+        if(first_level_block == 0) {
+            first_level_block = fs.alloc_block();
+            if(first_level_block == 0) return FAIL;
+            second_table[first_level_id / FIRST_LEVEL_SIZE] = first_level_block;
+        }
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(first_level_block)
+                                                        .data());
+        first_table[first_level_id % FIRST_LEVEL_SIZE] = blkno;
+    }
+    else {
+        cerr << "push_back_block: too large file." << endl;
+        return FAIL;
+    }
     return blkno;
 }
 
 int Inode::pop_back_block() {
-    int blkno = d_addr[d_size / BLOCK_SIZE];
-    if(blkno == 0) return FAIL;
-    fs.dealloc_block(blkno);
-    d_addr[d_size / BLOCK_SIZE] = 0;
+    int blk_id = d_size / BLOCK_SIZE;
+    if(blk_id < DIRECT_COUNT) {
+        fs.dealloc_block(d_addr[blk_id]);
+        d_addr[blk_id] = 0;
+    }
+    else if(blk_id < FIRST_LEVEL_COUNT) {
+        int first_level_id = blk_id - DIRECT_COUNT;
+        int first_level_block = d_addr[DIRECT_COUNT + first_level_id / FIRST_LEVEL_SIZE];
+        
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(first_level_block)
+                                                        .data());
+        first_table[first_level_id % FIRST_LEVEL_SIZE] = 0;
+        fs.dealloc_block(d_addr[blk_id]);
+        d_addr[blk_id] = 0;
+    }
+    else if(blk_id < SECOND_LEVEL_COUNT) {
+        int second_level_id = blk_id - FIRST_LEVEL_COUNT;
+        int second_level_block = d_addr[DIRECT_COUNT + FIRST_LEVEL_COUNT + second_level_id / SECOND_LEVEL_SIZE];
+        
+        int *second_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(second_level_block)
+                                                        .data());
+        int first_level_id = second_level_id % SECOND_LEVEL_SIZE;
+        int first_level_block = second_table[first_level_id / FIRST_LEVEL_SIZE];
+        
+        int *first_table = reinterpret_cast<int *>(fs.block_cache_mgr_
+                                                        .writable_cache(first_level_block)
+                                                        .data());
+        first_table[first_level_id % FIRST_LEVEL_SIZE] = 0;
+        fs.dealloc_block(d_addr[blk_id]);
+        d_addr[blk_id] = 0;
+    }
+    else {
+        cerr << "pop_back_block: too large file." << endl;
+        return FAIL;
+    }
     return 0;
 }
 
@@ -267,30 +380,17 @@ int Inode::find_file(const string &name) {
 }
 
 int Inode::clear() {
-    for (int i=0; i<10; i++) {
-        if (d_addr[i]) {
-            fs.dealloc_block(d_addr[i]);
-            d_addr[i] = 0;
-        }
-    }
+    resize(0);
     fs.dealloc_inode(i_ino);
     return 0;
 }
 
 int Inode::copy_from(Inode &src) {
-    d_mode = src.d_mode;
-    d_size = src.d_size;
-    /* TODO change time
-    d_mtime = src.d_mtime;
-    d_atime = src.d_atime;
-    d_ctime = src.d_ctime;
-    */
-
     /* 复制物理块内容（逐块复制） */
     int blknum = (src.d_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    for(int i=0; i<blknum; i++) {
+    for(int i=0, d_size=0; i<blknum; i++, d_size+=BLOCK_SIZE) {
         int srcno = src.get_block_id(i);
-        int new_blkno = fs.alloc_block();
+        int new_blkno = push_back_block();
         if(new_blkno == 0) {
             cerr << "copyFrom: No free block" << endl;
             return FAIL;
@@ -303,8 +403,14 @@ int Inode::copy_from(Inode &src) {
                           .writable_cache(new_blkno)
                           .data();
         memcpy(new_buf, src_buf, BLOCK_SIZE);
-
-        d_addr[i++] = new_blkno; //TODO: not correct
     }
+
+    d_mode = src.d_mode;
+    d_size = src.d_size;
+    /* TODO change time
+    d_mtime = src.d_mtime;
+    d_atime = src.d_atime;
+    d_ctime = src.d_ctime;
+    */
     return 0;
 }
