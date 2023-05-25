@@ -25,6 +25,8 @@ public:
 
     std::vector<std::string> split_path(std::string path);
 
+    std::string pCommand(User& user, std::string& command);
+
     /*
     * --------- 物理层 ------------
     */

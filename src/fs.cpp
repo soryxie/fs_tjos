@@ -515,3 +515,63 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 
     return 0;
 }
+
+string FileSystem::pCommand(User& user, string& command) {
+    set_u(&user);
+
+    // 解析命令
+    istringstream iss(command);
+    string s;
+    vector<string> tokens;
+    while(iss) {
+        iss >> s;
+        tokens.emplace_back(s);
+    }
+
+    // 结果统一存入result
+    string result;
+    if(tokens[0] == "init"){
+        //if(initialize_from_external_directory(tokens[1]) == false) {
+        if(initialize_from_external_directory("test_folder") == false)
+            result = "Initialize failed!\n";
+        else
+            result = "Initialize success!\n";
+    }
+    else if(tokens[0] == "ls"){
+        if(tokens.size() > 2)
+            result = ls(tokens[1]);
+        else
+            result = ls("");
+    }
+    else if(tokens[0] == "cd"){
+        if(changeDir(tokens[1]) != FAIL)
+            result = "cd : success!\n";
+    }
+    else if(tokens[0] == "mkdir"){
+        if(createDir(user.current_dir_,tokens[1]) != FAIL)
+            result = "mkdir : success!\n";
+    }
+    else if(tokens[0] == "cat"){
+        result = cat(tokens[1]);
+    }
+    else if(tokens[0] == "rm"){
+        if(deleteFile(tokens[1]) != FAIL)
+            result = "rm : success!\n";
+    }
+    else if(tokens[0] == "cp"){
+        if(copyFile(tokens[1], tokens[2]) != FAIL)
+            result = "cp : success!\n";
+    }
+    else if(tokens[0] == "save"){
+        if(saveFile(tokens[1], tokens[2]) != FAIL)
+            result = "save : success!\n";
+    }
+    else if(tokens[0] == "export"){
+        if(exportFile(tokens[1], tokens[2]) != FAIL)
+            result = "export : success!\n";
+    }
+    else {
+        result = "Invalid command!\n";
+    }
+    return result;
+}

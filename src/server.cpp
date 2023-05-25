@@ -29,68 +29,15 @@ void handleClient(int clientSocket) {
         memset(buffer, 0, sizeof(buffer));
         int bytesRead = read(clientSocket, buffer, sizeof(buffer) - 1);
         if (bytesRead > 0) {
-            // 解析命令
-            istringstream iss(buffer);
-            string s;
-            vector<string> tokens;
-            while(iss) {
-                iss >> s;
-                tokens.emplace_back(s);
-            }
-
-            // 啥也没输入，跳过
-            if (tokens.empty()) continue;
-
-            // 结果统一存入result
-            string result;
-            if(tokens[0] == "init"){
-                //if(fs.initialize_from_external_directory(tokens[1]) == false) {
-                if(fs.initialize_from_external_directory("test_folder") == false)
-                    result = "Initialize failed!\n";
-                else
-                    result = "Initialize success!\n";
-            }
-            else if(tokens[0] == "ls"){
-                if(tokens.size() > 2)
-                    result = fs.ls(tokens[1]);
-                else
-                    result = fs.ls("");
-            }
-            else if(tokens[0] == "cd"){
-                if(fs.changeDir(tokens[1]) != FAIL)
-                    result = "cd : success!\n";
-            }
-            else if(tokens[0] == "mkdir"){
-                if(fs.createDir(user.current_dir_,tokens[1]) != FAIL)
-                    result = "mkdir : success!\n";
-            }
-            else if(tokens[0] == "cat"){
-                result = fs.cat(tokens[1]);
-            }
-            else if(tokens[0] == "rm"){
-                if(fs.deleteFile(tokens[1]) != FAIL)
-                    result = "rm : success!\n";
-            }
-            else if(tokens[0] == "cp"){
-                if(fs.copyFile(tokens[1], tokens[2]) != FAIL)
-                    result = "cp : success!\n";
-            }
-            else if(tokens[0] == "save"){
-                if(fs.saveFile(tokens[1], tokens[2]) != FAIL)
-                    result = "save : success!\n";
-            }
-            else if(tokens[0] == "export"){
-                if(fs.exportFile(tokens[1], tokens[2]) != FAIL)
-                    result = "export : success!\n";
-            }
-            else if(tokens[0] == "exit"){
-                result = "exit!";
-                write(clientSocket, result.c_str(), result.length());
+            string command = buffer;
+            if(command == "exit"){
+                write(clientSocket, "exit!", 6);
                 break;
             }
-            else {
-                result = "Invalid command!\n";
-            }
+
+            // fs 处理
+            string result = fs.pCommand(user, command);
+
             // 发送结果给客户端
             memset(buffer, 0, sizeof(buffer));
             strcpy(buffer, result.c_str());
