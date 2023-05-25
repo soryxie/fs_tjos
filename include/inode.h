@@ -40,9 +40,10 @@ public:
 	int init_as_dir(int ino, int fa_ino);
 	int find_file(const std::string &name);
 	int create_file(const std::string &name, bool is_dir);
-	int delete_file_entry(const std::string &name);   // 删除目录项，返回Inode号，但是没有删除Inode
+	int delete_file_entry(const std::string &name);   // 删除目录项，返回Inode号，但是没有删除Inode(调用者保证删除目录时子文件的处理)
 
 	std::vector<DirectoryEntry> get_entry();
+	int set_entry(std::vector<DirectoryEntry>& entrys);
 
 public:
 	/*-------------------------内存Inode独有成员------------------------------*/

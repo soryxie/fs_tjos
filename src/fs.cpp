@@ -90,7 +90,7 @@ int FileSystem::alloc_inode() {
     // 将Int型的时间变为可读
     //char* str_time = ctime((const time_t *)&d_atime);
     //cout << "allocate new inode "<< ino <<", uid="<< d_uid <<", gid="<< d_gid <<", time="/*<< str_time*/ << endl;
-
+    cout << "alloc inode : " << ino << endl;
     return ino;
 }
 
@@ -112,15 +112,19 @@ int FileSystem::alloc_block() {
         cout << "error : block list empty" << endl;
         return FAIL;
     }
+
+    cout << "alloc block : " << blkno << endl;
     return blkno;
 }
 
 int FileSystem::dealloc_inode(int ino) {
+    cout << "dealloc inode : " << ino << endl;
     sb.s_inode[sb.s_ninode++] = ino;
     return 0;
 }
 
 int FileSystem::dealloc_block(int blkno) {
+    cout << "dealloc block : " << blkno << endl;
     if(sb.s_nfree >= 100) // free list 满了
     {
         // 换一张新表
@@ -420,5 +424,34 @@ int FileSystem::cat(const string& path) {
 }
 
 int FileSystem::deleteFile(const string& filename) {
+    // 找到目标文件所在目录的inode编号
+    int dir, ino;
+    if(filename.rfind('/') == -1)
+        dir = user_->current_dir_;
+    else {
+        dir = find_from_path(filename.substr(0, filename.rfind('/')));
+    }
+
+    // 找到目标文件
+    ino = find_from_path(filename);
+    if(dir == FAIL || ino == FAIL) {
+        cerr << "rm: '" << filename << "' No such file or directory" << endl;
+        return FAIL;
+    }
+
+    // 确定文件类型
+    if(inodes[ino].d_mode & Inode::FileType::Directory) {
+        cerr << "rm: cannot remove '" << filename << "': Is a directory" << endl;
+        return FAIL;
+    }
+
+    // 从父目录中删除entry项
+    ino = inodes[dir].delete_file_entry(filename.substr(filename.rfind('/')+1));
+    if (ino == FAIL) {
+        return FAIL;
+    }
+
+    // 删除文件 释放inode
+    inodes[ino].clear();
     return 0;
 }

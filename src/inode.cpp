@@ -149,8 +149,15 @@ vector<DirectoryEntry> Inode::get_entry() {
         cerr << "getEntry: read directory entries failed." << endl;
         return entrys;
     }
-
     return entrys;
+}
+
+int Inode::set_entry(vector<DirectoryEntry>& entrys) {
+    if(!write_at(0, (char *)entrys.data(), d_size)) {
+        cerr << "setEntry: write directory entries failed." << endl;
+        return FAIL;
+    }
+    return 0;
 }
 
 int Inode::init_as_dir(int ino, int fa_ino) {
@@ -235,6 +242,10 @@ int Inode::delete_file_entry(const string& filename) {
         std::cerr << "deleteFile: File not found." << std::endl;
         return FAIL;
     }
+
+    // 更新目录文件内容
+    if(set_entry(entrys) == FAIL)
+        return FAIL;
 
     d_size -= ENTRY_SIZE;                       // 目录文件收缩
 
