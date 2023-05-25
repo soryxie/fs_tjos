@@ -79,6 +79,12 @@ int main() {
         else if(tokens[0] == "cp"){
             fs.copyFile(tokens[1], tokens[2]);
         }
+        else if(tokens[0] == "save"){
+            fs.saveFile(tokens[1], tokens[2]);
+        }
+        else if(tokens[0] == "export"){
+            fs.exportFile(tokens[1], tokens[2]);
+        }
         else if(tokens[0] == "exit"){
             break;
         }

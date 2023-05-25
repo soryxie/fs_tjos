@@ -67,10 +67,10 @@ public:
     int createDir(const int current_dir, const std::string& dirname);
     //在当前目录下创建一个新目录,返回值是该目录的ino
 
-    int loadFile(const std::string& filename, const std::string& dst);
-    //从文件系统中加载一个文件，将其复制到本地目录中
+    int exportFile(const std::string& src, const std::string& outsideFile);
+    //从文件系统中的文件导出到本地
 
-    int saveFile(const std::string& src, const std::string& filename);
+    int saveFile(const std::string& outsideFile, const std::string& dst);
     //将本地文件复制到文件系统中
 
     int deleteDir(const std::string& dirname);

@@ -212,29 +212,60 @@ void FileSystem::set_current_dir_name(string& token) {
         }
     }
 }
+
+int FileSystem::exportFile(const string& src, const std::string& outsideFile) {
+    int ino = find_from_path(src);
+    if (ino == FAIL) {
+        cerr << "Failed to find file: " << src << endl;
+        return false;
+    }
+
+    Inode &inode = inodes[ino];
     
-/**
-* 从外部文件读取
-* 写入TJ_FS
-*/
-int FileSystem::saveFile(const std::string& src, const std::string& filename) {
+    // 判断是否为文件
+    if(!(inode.d_mode & Inode::FileType::RegularFile)) {
+        cerr << "Failed to export " << src << ". Is not a Regular File!" << endl;
+        return FAIL;
+    }
+
+    // 打开外部文件
+    ofstream fout(outsideFile, ios::binary);
+    if (!fout) {
+        cerr << "Failed to open file: " << outsideFile << endl;
+        return FAIL;
+    }
+
+    // 读取文件内容
+    int size = inode.d_size;
+    string buf;
+    buf.resize(size);
+    inode.read_at(0, (char *)buf.data(), size);
+
+    // 写入外部文件
+    fout.write(buf.data(), size);
+    fout.close();
+
+    return 0;
+}    
+
+int FileSystem::saveFile(const string& outsideFile, const string& dst) {
     // 找到目标文件所在目录的inode编号
     int dir;
-    if(filename.rfind('/') == -1)
+    if(dst.rfind('/') == -1)
         dir = user_->current_dir_;
     else {
-        dir = find_from_path(filename.substr(0, filename.rfind('/')));
+        dir = find_from_path(dst.substr(0, dst.rfind('/')));
         if (dir == FAIL) {
-            std::cerr << "Failed to find directory: " << filename.substr(0, filename.rfind('/')) << std::endl;
+            cerr << "Failed to find directory: " << dst.substr(0, dst.rfind('/')) << endl;
             return false;
         }
     }
 
     // 在目标目录下创建新文件
-    string name = filename.substr(filename.rfind('/') + 1);
+    string name = dst.substr(dst.rfind('/') + 1);
     int ino = inodes[dir].create_file(name, false);
     if (ino == FAIL) {
-        std::cerr << "Failed to create file: " << filename << std::endl;
+        cerr << "Failed to create file: " << dst << endl;
         return false;
     }
 
@@ -242,24 +273,24 @@ int FileSystem::saveFile(const std::string& src, const std::string& filename) {
     Inode& inode = inodes[ino];
 
     // 从文件读取并写入inode
-    std::ifstream infile(src, std::ios::binary | std::ios::in);
+    ifstream infile(outsideFile, ios::binary | ios::in);
     if (!infile) {
-        std::cerr << "Failed to open file: " << src << std::endl;
+        cerr << "Failed to open file: " << outsideFile << endl;
         return false;
     }
 
     // 获取文件大小
-    infile.seekg(0, std::ios::end);
+    infile.seekg(0, ios::end);
     size_t size = infile.tellg();
-    infile.seekg(0, std::ios::beg);
+    infile.seekg(0, ios::beg);
 
     // 一次性读取文件数据
-    std::vector<char> data(size);
+    vector<char> data(size);
     infile.read(data.data(), size);
 
     // 写入inode
     if (!inode.write_at(0, data.data(), size)) {
-        std::cerr << "Failed to write data to inode" << std::endl;
+        cerr << "Failed to write data to inode" << endl;
         return false;
     }
 
