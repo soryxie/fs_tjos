@@ -513,3 +513,173 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 
     return 0;
 }
+
+ int FileSystem::moveFile(const std::string& src, const std::string& dst) {
+    
+    cout << dst << endl;
+    //src是否存在
+        //src不存在
+            //报错
+        //src存在
+            //src存在dst不存在
+                //dst父目录不存在   报错
+                //dst父目录存在     可以移动
+            //dst存在
+                //dst是文件 报错
+                //dst是目录 可以移动
+                
+
+    int src_ino = find_from_path(src);
+    if(src_ino == FAIL) {
+        cerr << "mv: cannot move '" << src << "': No such file or directory" << endl;
+        return FAIL;
+    }
+    int src_dir;
+    if(src.rfind('/') == -1)
+        src_dir = user_->current_dir_;
+    else {
+        src_dir = find_from_path(src.substr(0, src.rfind('/')));
+    }
+
+    int dst_dir = -1;
+    if(dst.empty())
+    {
+        cerr << "mv: insufficent args" << endl;
+        return FAIL;
+    }
+    int dst_ino = find_from_path(dst);
+    std::string dst_filename = "";
+    if(dst_ino == FAIL) {
+        
+        if(dst.rfind('/') == -1)
+            dst_dir = user_->current_dir_;
+        else 
+        dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
+
+        if(dst_dir == FAIL)
+        {
+            cerr << "mv: cannot move to '" << dst.substr(0, dst.rfind('/')) << "': No such directory" << endl;
+            return FAIL;
+        }
+
+        dst_filename =  dst.substr(dst.rfind('/')+1);
+
+    }
+    else
+    {
+        if(src_ino == dst_ino)
+        {
+            cout << "mv: you are wasting time finding bugs" << endl;
+            return 0;
+        }
+        bool dst_is_file = inodes[dst_ino].d_mode & Inode::FileType::RegularFile;
+        if(dst_is_file)
+        {
+            std::cerr << "mv: '"<< dst <<"is a file, can not move dir to file" << std::endl;
+            return FAIL;
+        }
+        dst_filename =  src.substr(src.rfind('/')+1);
+        dst_dir = dst_ino;
+    }
+    //此时已经确定当前情形一定可以移动
+    //src_dir是src的父目录，src_ino是src的ino，dst_filename是移过去之后的文件名，dst_dir是移动的目标路径（src置于dst_dir下）
+
+    //删除src
+    inodes[src_dir].delete_file_entry(src.substr(src.rfind('/')+1));
+    //在dst_dir下新建一个文件
+    bool src_is_dir = inodes[src_ino].d_mode & Inode::FileType::Directory;
+    //cout << dst_filename << endl;
+    dst_ino = inodes[dst_dir].create_file(dst_filename,src_is_dir);
+    //把src的信息复制过来
+    inodes[dst_ino].copy_from(inodes[src_ino]);
+
+    return 0;
+}
+
+
+/*
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //判断src是否存在/为文件
+    int src_ino = find_from_path(src);
+    int dst_ino = find_from_path(dst);
+
+    int src_path = -1;
+    std::string src_file_name = "";
+    int dst_path = -1;
+    std::string dst_filename = "";
+
+
+    if (src_ino == -1) {
+        std::cerr << "mv: cannot access '" << src << "': No such file or directory" << std::endl;
+        return FAIL;
+    }
+
+    bool src_is_dir = (inodes[src_ino].d_mode & Inode::FileType::Directory);
+    //判断dst是否以/结尾，如果以/结尾就一定是目录，反之一定是文件
+    bool dst_is_dir = (dst[dst.length()-1] == '/');
+    
+
+    //处理dst
+    //如果dst是目录，判断其是否存在
+    if(dst_is_dir)
+    {  
+        if (dst_ino == -1) 
+        {
+            dst_ino = createDir(user_->current_dir_ ,dst);
+        }
+        dst_path = dst_ino;
+    }   
+    else 
+    {
+        //如果dst是文件,src是目录，报错
+        if(src_is_dir)
+        {
+            std::cerr << "mv: can not move dir to file" << std::endl;
+            return FAIL;
+        }
+        //没有/的情况
+        if(dst.rfind('/') == -1)
+        {
+            dst_path = user_->current_dir_;
+            dst_filename = dst;
+        }
+        else
+        {
+            dst_path = find_from_path(dst.substr(0, dst.rfind('/')));
+            dst_filename =  dst.substr(dst.rfind('/')+1);
+            if (dst_path == FAIL) 
+            {
+                std::cerr << "cd: Failed to find directory: " << dst.substr(0, dst.rfind('/')) << std::endl;
+                return FAIL;
+            }
+        }
+
+    }
+    
+    
+    //处理src
+    if(src.rfind('/') == -1)
+    {
+        src_file_name = src;
+        src_path = user_->current_dir_;
+    }
+    else
+    {
+        src_file_name =  src.substr(src.rfind('/')+1);
+        src_path =  find_from_path(src.substr(0, src.rfind('/')));
+    }
+    
+    src_ino = inodes[src_path].delete_file_entry(src);
+
+    if(dst_filename == "")
+    {
+        dst_filename = src_file_name;
+    }
+
+
+    dst_ino = inodes[dst_path].create_file(dst_filename,src_is_dir);
+    inodes[dst_ino].copy_from(inodes[src_ino]);
+    
+    return 0;
+
+}*/
