@@ -84,13 +84,14 @@ int main() {
         }
         else if(tokens[0] == "export"){
             fs.exportFile(tokens[1], tokens[2]);
+        }       
+        else if(tokens[0] == "mv"){
+            fs.moveFile(tokens[1], tokens[2]);
         }
         else if(tokens[0] == "exit"){
             break;
         }
-        else if(tokens[0] == "mv"){
-            cout << fs.moveFile(tokens[1], tokens[2]) << endl;
-        }
+ 
         /* 
         else if(tokens[0] == "touch"){
             fs.createFile(tokens[1]);

@@ -516,7 +516,6 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 
  int FileSystem::moveFile(const std::string& src, const std::string& dst) {
     
-    cout << dst << endl;
     //src是否存在
         //src不存在
             //报错
