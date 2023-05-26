@@ -8,12 +8,10 @@
 typedef unsigned int uint;
 
 class FileSystem {
-public:
-    friend class Inode; 
-    friend class BlockCache; 
 
-private:
-    User *user_;
+public:
+    int uid_;
+    std::vector<User> user_;
     std::fstream disk_;     // Disk file stream
     std::string diskfile_;  // Disk file name
     SuperBlock sb;          // Super block
@@ -24,6 +22,8 @@ private:
 public:
 
     std::vector<std::string> split_path(std::string path);
+
+    std::string pCommand(int uid, std::string& command);
 
     /*
     * --------- 物理层 ------------
@@ -59,7 +59,7 @@ public:
     FileSystem(const std::string& diskfile);
     ~FileSystem();
 
-    void set_u(User *u) {user_ = u;};
+    void set_u(int uid) {uid_ = uid;};
     
     /* 将一个外部文件系统目录作为内部文件系统的根目录并初始化文件系统的目录和文件 */
     int initialize_from_external_directory(const std::string& external_root_path, const int root_no = 1);
@@ -103,7 +103,7 @@ public:
     int changeDir(std::string& dirname);
     //更改当前目录到指定目录
 
-    int ls(const std::string& path);
+    std::string ls(const std::string& path);
     //获取当前目录下的所有文件和目录
 
     bool getFileInfo(const std::string& filename, Inode& ino);
@@ -112,6 +112,6 @@ public:
     void set_current_dir_name(std::string& path); 
     //修改User的当前目录字符串
 
-    int cat(const std::string& filename);
+    std::string cat(const std::string& filename);
     // 输出指定文件的内容
 };
