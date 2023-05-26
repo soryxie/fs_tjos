@@ -15,12 +15,12 @@
 using namespace std;
 
 FileSystem fs("myDisk.img");
-User login(int clientSocket);
+int login(int clientSocket);
 
 void handleClient(int clientSocket) {
-    User user = login(clientSocket);
+    int uid = login(clientSocket);
+    User &user = fs.user_[uid];
     user.set_current_dir(1);
-    fs.set_u(&user);
 
     char buffer[1024];
 
@@ -36,7 +36,7 @@ void handleClient(int clientSocket) {
             }
 
             // fs 处理
-            string result = fs.pCommand(user, command);
+            string result = fs.pCommand(uid, command);
 
             // 发送结果给客户端
             memset(buffer, 0, sizeof(buffer));
@@ -100,39 +100,25 @@ int main() {
 }
 
 // 验证用户名和密码是否正确
-User verifyLogin(const string& username, const string& password) {
-    vector<User> users;
-
-    // 打开存储用户名和密码的文件
-    ifstream file("users.txt");
-    if (!file.is_open()) {
-        return User(); // 返回一个空的 User 对象
-    }
-
-    // 读取文件中的用户信息
-    while (!file.eof()) {
-        User user;
-        file >> user.uid >> user.username >> user.password >> user.group;
-        users.push_back(user);
-    }
-    file.close();
+int verifyLogin(const string& username, const string& password) {
+    auto &users = fs.user_;
 
     // 遍历用户列表，查找匹配的用户
     for (int i = 0; i < users.size(); i++) {
         if (users[i].username == username) {
             // 验证密码是否正确
             if (users[i].password == password) {
-                return users[i]; // 返回包含用户信息的 User 对象
+                return users[i].uid; // 返回包含用户信息的 User 对象
             }
             else {
-                return User(); // 返回一个空的 User 对象表示密码错误
+                return FAIL; // 返回一个空的 User 对象表示密码错误
             }
         }
     }
-    return User(); // 返回一个空的 User 对象表示用户名不存在
+    return FAIL; // 返回一个空的 User 对象表示用户名不存在
 }
 
-User login(int clientSocket){
+int login(int clientSocket){
     return verifyLogin("alice","123456");
     string username, password, reply;
     char buffer[1024];
@@ -150,11 +136,11 @@ User login(int clientSocket){
             else if(stage == 1) {
                 password = buffer;
                 // 验证登录信息
-                User user = verifyLogin(username, password);
-                if (user.username != "") {
+                int uid = verifyLogin(username, password);
+                if (uid != FAIL) {
                     reply = "Login successful";
                     write(clientSocket, reply.c_str(), reply.length());
-                    return user;
+                    return uid;
                 }
                 else {
                     reply = "Incorrect username or password";

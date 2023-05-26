@@ -49,6 +49,22 @@ FileSystem::FileSystem(const std::string& diskfile) {
     // 保存
     diskfile_ = diskfile;
     disk_ = std::move(disk);
+
+    // 读取用户信息
+    // 打开存储用户名和密码的文件
+    ifstream file("users.txt");
+    if (!file.is_open()) {
+        cerr << "Failed to open users.txt" << endl;
+        exit(0); 
+    }
+
+    // 读取文件中的用户信息
+    while (!file.eof()) {
+        User user;
+        file >> user.uid >> user.username >> user.password >> user.group;
+        user_.push_back(user);
+    }
+    file.close();
 }
 
 FileSystem::~FileSystem() {
@@ -81,8 +97,8 @@ int FileSystem::alloc_inode() {
         return 0;
     int ino = sb.s_inode[--sb.s_ninode];
     inodes[ino].d_nlink = 1;
-    inodes[ino].d_uid = user_->uid;
-    inodes[ino].d_gid = user_->group;
+    inodes[ino].d_uid = user_[uid_].uid;
+    inodes[ino].d_gid = user_[uid_].group;
     
     // 获取当前时间的Unix时间戳
     inodes[ino].d_atime = inodes[ino].d_mtime = get_cur_time();
@@ -177,7 +193,7 @@ int FileSystem::find_from_path(const string& path) {
         if(path[0] == '/')
             ino = ROOT_INO;         
         else
-            ino = user_->current_dir_;
+            ino = user_[uid_].current_dir_;
     }
 
     // 重新解析Path
@@ -196,19 +212,19 @@ void FileSystem::set_current_dir_name(string& token) {
     vector<string> paths = split_path(token);
     for (auto& path : paths) {
         if (path == "..")  {
-            if(user_->current_dir_name !="/") {
-                size_t pos = user_->current_dir_name.rfind('/');
-                user_->current_dir_name = user_->current_dir_name.substr(0, pos);
-                if(user_->current_dir_name == "")
-                    user_->current_dir_name = "/";
+            if(user_[uid_].current_dir_name !="/") {
+                size_t pos = user_[uid_].current_dir_name.rfind('/');
+                user_[uid_].current_dir_name = user_[uid_].current_dir_name.substr(0, pos);
+                if(user_[uid_].current_dir_name == "")
+                    user_[uid_].current_dir_name = "/";
             }
         } 
         else if (path == ".") {}
         else {
-            if (user_->current_dir_name.back() != '/') {
-                user_->current_dir_name += '/';
+            if (user_[uid_].current_dir_name.back() != '/') {
+                user_[uid_].current_dir_name += '/';
             }
-            user_->current_dir_name += path;
+            user_[uid_].current_dir_name += path;
         }
     }
 }
@@ -252,7 +268,7 @@ int FileSystem::saveFile(const string& outsideFile, const string& dst) {
     // 找到目标文件所在目录的inode编号
     int dir;
     if(dst.rfind('/') == -1)
-        dir = user_->current_dir_;
+        dir = user_[uid_].current_dir_;
     else {
         dir = find_from_path(dst.substr(0, dst.rfind('/')));
         if (dir == FAIL) {
@@ -329,11 +345,11 @@ int FileSystem::initialize_from_external_directory(const string& path, const int
                     cout << "make folder: " << Name << " success! inode:" << ino << endl;
 
                     /* 递归进入，需要递进用户目录 */
-                    user_->current_dir_ = ino;
+                    user_[uid_].current_dir_ = ino;
                     if(initialize_from_external_directory(path + '/' + Name, ino) == false){
                         return false;
                     }
-                    user_->current_dir_ = root_no;
+                    user_[uid_].current_dir_ = root_no;
 
                 }
                 else if (S_ISREG(buf.st_mode))
@@ -357,7 +373,7 @@ string FileSystem::ls(const string& path) {
     ostringstream oss;
     int path_no;
     if(path.empty())
-        path_no = user_->current_dir_;
+        path_no = user_[uid_].current_dir_;
     else
         path_no = find_from_path(path);
 
@@ -381,7 +397,7 @@ string FileSystem::ls(const string& path) {
 
             //输出用户            
             oss.width(7); 
-            oss << user_->username;
+            oss << user_[uid_].username;
             
             //输出文件大小
             oss.width(5);
@@ -422,7 +438,7 @@ int FileSystem::changeDir(string& dirname) {
     }
     else {  
         // 检查通过，设置cur_dir的 INode 和 路径字符串 
-        user_->set_current_dir(dir); 
+        user_[uid_].set_current_dir(dir); 
         set_current_dir_name(dirname);
         return 0;
     }
@@ -460,7 +476,7 @@ int FileSystem::deleteFile(const string& filename) {
     // 找到目标文件所在目录的inode编号
     int dir, ino;
     if(filename.rfind('/') == -1)
-        dir = user_->current_dir_;
+        dir = user_[uid_].current_dir_;
     else {
         dir = find_from_path(filename.substr(0, filename.rfind('/')));
     }
@@ -498,7 +514,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 
     int dst_dir;
     if(dst.rfind('/') == -1)
-        dst_dir = user_->current_dir_;
+        dst_dir = user_[uid_].current_dir_;
     else {
         dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
     }
@@ -516,8 +532,8 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     return 0;
 }
 
-string FileSystem::pCommand(User& user, string& command) {
-    set_u(&user);
+string FileSystem::pCommand(int uid, string& command) {
+    set_u(uid);
 
     // 解析命令
     istringstream iss(command);
@@ -548,7 +564,7 @@ string FileSystem::pCommand(User& user, string& command) {
             result = "cd : success!\n";
     }
     else if(tokens[0] == "mkdir"){
-        if(createDir(user.current_dir_,tokens[1]) != FAIL)
+        if(createDir(user_[uid_].current_dir_,tokens[1]) != FAIL)
             result = "mkdir : success!\n";
     }
     else if(tokens[0] == "cat"){
