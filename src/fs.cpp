@@ -562,8 +562,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     }
 
     int dst_dir = -1;
-    if(dst.empty())
-    {
+    if(dst.empty()) {
         cerr << "mv: insufficent args" << endl;
         return FAIL;
     }
@@ -576,8 +575,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
         else 
         dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
 
-        if(dst_dir == FAIL)
-        {
+        if(dst_dir == FAIL) {
             cerr << "mv: cannot move to '" << dst.substr(0, dst.rfind('/')) << "': No such directory" << endl;
             return FAIL;
         }
@@ -585,16 +583,13 @@ int FileSystem::copyFile(const string& src, const string& dst) {
         dst_filename =  dst.substr(dst.rfind('/')+1);
 
     }
-    else
-    {
-        if(src_ino == dst_ino)
-        {
+    else {
+        if(src_ino == dst_ino) {
             cout << "mv: you are wasting time finding bugs" << endl;
             return 0;
         }
         bool dst_is_file = inodes[dst_ino].d_mode & Inode::FileType::RegularFile;
-        if(dst_is_file)
-        {
+        if(dst_is_file) {
             std::cerr << "mv: '"<< dst <<"is a file, can not move dir to file" << std::endl;
             return FAIL;
         }
