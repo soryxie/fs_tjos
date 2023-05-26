@@ -36,6 +36,7 @@ public:
 
 	int clear();
 	int copy_from(Inode &src);
+	int move_from(Inode &src);
 	
 	/* dir inode only */
 	int init_as_dir(int ino, int fa_ino);

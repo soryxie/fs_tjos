@@ -427,3 +427,20 @@ int Inode::copy_from(Inode &src) {
     */
     return 0;
 }
+
+int Inode::move_from(Inode &src) {
+    /* 复制物理块号 */
+    for(int i=0; i<10; i++) {
+        d_addr[i] = src.d_addr[i];
+        src.d_addr[i] = 0;
+    }
+
+    d_mode = src.d_mode;
+    d_size = src.d_size;
+    /* TODO change time
+    d_mtime = src.d_mtime;
+    d_atime = src.d_atime;
+    d_ctime = src.d_ctime;
+    */
+    return 0;
+}
