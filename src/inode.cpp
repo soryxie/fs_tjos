@@ -375,7 +375,7 @@ int Inode::delete_file_entry(const string& filename) {
     d_size -= ENTRY_SIZE;                       // 目录文件收缩
 
     if (d_size % BLOCK_SIZE == 0) {             // 需要弹出最后一块物理块
-        push_back_block();
+        pop_back_block();
     }
 
     return ino;
