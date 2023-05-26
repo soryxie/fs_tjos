@@ -50,6 +50,22 @@ FileSystem::FileSystem(const std::string& diskfile) {
     // 保存
     diskfile_ = diskfile;
     disk_ = std::move(disk);
+
+    // 读取用户信息
+    // 打开存储用户名和密码的文件
+    ifstream file("users.txt");
+    if (!file.is_open()) {
+        cerr << "Failed to open users.txt" << endl;
+        exit(0); 
+    }
+
+    // 读取文件中的用户信息
+    while (!file.eof()) {
+        User user;
+        file >> user.uid >> user.username >> user.password >> user.group;
+        user_.push_back(user);
+    }
+    file.close();
 }
 
 FileSystem::~FileSystem() {
@@ -82,8 +98,8 @@ int FileSystem::alloc_inode() {
         return 0;
     int ino = sb.s_inode[--sb.s_ninode];
     inodes[ino].d_nlink = 1;
-    inodes[ino].d_uid = user_->uid;
-    inodes[ino].d_gid = user_->group;
+    inodes[ino].d_uid = user_[uid_].uid;
+    inodes[ino].d_gid = user_[uid_].group;
     
     // 获取当前时间的Unix时间戳
     inodes[ino].d_atime = inodes[ino].d_mtime = get_cur_time();
@@ -178,7 +194,7 @@ int FileSystem::find_from_path(const string& path) {
         if(path[0] == '/')
             ino = ROOT_INO;         
         else
-            ino = user_->current_dir_;
+            ino = user_[uid_].current_dir_;
     }
 
     // 重新解析Path
@@ -197,19 +213,19 @@ void FileSystem::set_current_dir_name(string& token) {
     vector<string> paths = split_path(token);
     for (auto& path : paths) {
         if (path == "..")  {
-            if(user_->current_dir_name !="/") {
-                size_t pos = user_->current_dir_name.rfind('/');
-                user_->current_dir_name = user_->current_dir_name.substr(0, pos);
-                if(user_->current_dir_name == "")
-                    user_->current_dir_name = "/";
+            if(user_[uid_].current_dir_name !="/") {
+                size_t pos = user_[uid_].current_dir_name.rfind('/');
+                user_[uid_].current_dir_name = user_[uid_].current_dir_name.substr(0, pos);
+                if(user_[uid_].current_dir_name == "")
+                    user_[uid_].current_dir_name = "/";
             }
         } 
         else if (path == ".") {}
         else {
-            if (user_->current_dir_name.back() != '/') {
-                user_->current_dir_name += '/';
+            if (user_[uid_].current_dir_name.back() != '/') {
+                user_[uid_].current_dir_name += '/';
             }
-            user_->current_dir_name += path;
+            user_[uid_].current_dir_name += path;
         }
     }
 }
@@ -253,7 +269,7 @@ int FileSystem::saveFile(const string& outsideFile, const string& dst) {
     // 找到目标文件所在目录的inode编号
     int dir;
     if(dst.rfind('/') == -1)
-        dir = user_->current_dir_;
+        dir = user_[uid_].current_dir_;
     else {
         dir = find_from_path(dst.substr(0, dst.rfind('/')));
         if (dir == FAIL) {
@@ -330,11 +346,11 @@ int FileSystem::initialize_from_external_directory(const string& path, const int
                     cout << "make folder: " << Name << " success! inode:" << ino << endl;
 
                     /* 递归进入，需要递进用户目录 */
-                    user_->current_dir_ = ino;
+                    user_[uid_].current_dir_ = ino;
                     if(initialize_from_external_directory(path + '/' + Name, ino) == false){
                         return false;
                     }
-                    user_->current_dir_ = root_no;
+                    user_[uid_].current_dir_ = root_no;
 
                 }
                 else if (S_ISREG(buf.st_mode))
@@ -354,23 +370,24 @@ int FileSystem::initialize_from_external_directory(const string& path, const int
     return true;
 }
 
-int FileSystem::ls(const string& path) {
+string FileSystem::ls(const string& path) {
+    ostringstream oss;
     int path_no;
     if(path.empty())
-        path_no = user_->current_dir_;
+        path_no = user_[uid_].current_dir_;
     else
         path_no = find_from_path(path);
 
     if (path_no == FAIL) {
-        std::cerr << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
-        return false;
+        oss << "ls: cannot access '" << path << "': No such file or directory" << std::endl;
+        return oss.str();
     }
 
     Inode &inode = inodes[path_no];
     // 检查是否是目录
     if(!(inode.d_mode & Inode::FileType::Directory)) {
-        cerr << "'" << path << "' is not a directory" << endl;
-        return FAIL;
+        oss << "'" << path << "' is not a directory" << endl;
+        return oss.str();
     }
 
     auto entries = inode.get_entry();
@@ -380,25 +397,25 @@ int FileSystem::ls(const string& path) {
             string name(entry.m_name);
 
             //输出用户            
-            cout.width(7); 
-            cout << user_->username << " ";
+            oss.width(7); 
+            oss << user_[uid_].username << " ";
             
             //输出文件大小
             float size = child_inode.d_size;
             if(size < 1024) {
-                cout.width(7);
-                cout << child_inode.d_size  << "B ";
+                oss.width(7);
+                oss << child_inode.d_size  << "B ";
             }
             else {
                 size = size / 1024.0;
                 if(size < 1024) {
-                    cout.width(7);
-                    cout << std::fixed << std::setprecision(2) << size << "K "; 
+                    oss.width(7);
+                    oss << std::fixed << std::setprecision(2) << size << "K "; 
                 }
                 else {
                     size = size / 1024.0;
-                    cout.width(7);
-                    cout << std::fixed << std::setprecision(2) << size << "M "; 
+                    oss.width(7);
+                    oss << std::fixed << std::setprecision(2) << size << "M "; 
                 }
             }
 
@@ -407,18 +424,18 @@ int FileSystem::ls(const string& path) {
             std::tm* local_time = std::localtime(&t_time);  // int时间转换为当地时间
             char buffer[80];
             std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local_time);  // 格式化输出
-            std::cout << buffer << " ";
+            oss << buffer << " ";
 
             //输出文件名
-            cout << name;
+            oss << name;
             if (child_inode.d_mode & Inode::FileType::Directory) {
-                cout << "/";
+                oss << "/";
             }
-            cout << endl;
+            oss << endl;
         }
     }
 
-    return true;
+    return oss.str();
 }
 
 int FileSystem::changeDir(string& dirname) {
@@ -437,7 +454,7 @@ int FileSystem::changeDir(string& dirname) {
     }
     else {  
         // 检查通过，设置cur_dir的 INode 和 路径字符串 
-        user_->set_current_dir(dir); 
+        user_[uid_].set_current_dir(dir); 
         set_current_dir_name(dirname);
         return 0;
     }
@@ -450,11 +467,12 @@ int FileSystem::createDir(const int current_dir, const string& dirname) {
     return path_no;
 }
 
-int FileSystem::cat(const string& path) {
+string FileSystem::cat(const string& path) {
+    ostringstream oss;
     int path_no = find_from_path(path);
     if (path_no == -1) {
-        std::cerr << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
-        return false;
+        oss << "cat: cannot access '" << path << "': No such file or directory" << std::endl;
+        return oss.str();
     }
 
     Inode &inode = inodes[path_no];
@@ -466,15 +484,15 @@ int FileSystem::cat(const string& path) {
     str.resize(inode.d_size+1);
     inode.read_at(0, str.data(), inode.d_size);
     
-    cout << str << endl;
-    return true;
+    oss << str << endl;
+    return oss.str();
 }
 
 int FileSystem::deleteFile(const string& filename) {
     // 找到目标文件所在目录的inode编号
     int dir, ino;
     if(filename.rfind('/') == -1)
-        dir = user_->current_dir_;
+        dir = user_[uid_].current_dir_;
     else {
         dir = find_from_path(filename.substr(0, filename.rfind('/')));
     }
@@ -512,7 +530,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 
     int dst_dir;
     if(dst.rfind('/') == -1)
-        dst_dir = user_->current_dir_;
+        dst_dir = user_[uid_].current_dir_;
     else {
         dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
     }
@@ -531,19 +549,6 @@ int FileSystem::copyFile(const string& src, const string& dst) {
 }
 
  int FileSystem::moveFile(const std::string& src, const std::string& dst) {
-    
-    //src是否存在
-        //src不存在
-            //报错
-        //src存在
-            //src存在dst不存在
-                //dst父目录不存在   报错
-                //dst父目录存在     可以移动
-            //dst存在
-                //dst是文件 报错
-                //dst是目录 可以移动
-                
-
     int src_ino = find_from_path(src);
     if(src_ino == FAIL) {
         cerr << "mv: cannot move '" << src << "': No such file or directory" << endl;
@@ -551,7 +556,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     }
     int src_dir;
     if(src.rfind('/') == -1)
-        src_dir = user_->current_dir_;
+        src_dir = user_[uid_].current_dir_;
     else {
         src_dir = find_from_path(src.substr(0, src.rfind('/')));
     }
@@ -567,7 +572,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     if(dst_ino == FAIL) {
         
         if(dst.rfind('/') == -1)
-            dst_dir = user_->current_dir_;
+            dst_dir = user_[uid_].current_dir_;
         else 
         dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
 
@@ -611,90 +616,66 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     return 0;
 }
 
+string FileSystem::pCommand(int uid, string& command) {
+    set_u(uid);
 
-/*
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //判断src是否存在/为文件
-    int src_ino = find_from_path(src);
-    int dst_ino = find_from_path(dst);
-
-    int src_path = -1;
-    std::string src_file_name = "";
-    int dst_path = -1;
-    std::string dst_filename = "";
-
-
-    if (src_ino == -1) {
-        std::cerr << "mv: cannot access '" << src << "': No such file or directory" << std::endl;
-        return FAIL;
+    // 解析命令
+    istringstream iss(command);
+    string s;
+    vector<string> tokens;
+    while(iss) {
+        iss >> s;
+        tokens.emplace_back(s);
     }
 
-    bool src_is_dir = (inodes[src_ino].d_mode & Inode::FileType::Directory);
-    //判断dst是否以/结尾，如果以/结尾就一定是目录，反之一定是文件
-    bool dst_is_dir = (dst[dst.length()-1] == '/');
-    
-
-    //处理dst
-    //如果dst是目录，判断其是否存在
-    if(dst_is_dir)
-    {  
-        if (dst_ino == -1) 
-        {
-            dst_ino = createDir(user_->current_dir_ ,dst);
-        }
-        dst_path = dst_ino;
-    }   
-    else 
-    {
-        //如果dst是文件,src是目录，报错
-        if(src_is_dir)
-        {
-            std::cerr << "mv: can not move dir to file" << std::endl;
-            return FAIL;
-        }
-        //没有/的情况
-        if(dst.rfind('/') == -1)
-        {
-            dst_path = user_->current_dir_;
-            dst_filename = dst;
-        }
+    // 结果统一存入result
+    string result;
+    if(tokens[0] == "init"){
+        //if(initialize_from_external_directory(tokens[1]) == false) {
+        if(initialize_from_external_directory("test_folder") == false)
+            result = "Initialize failed!\n";
         else
-        {
-            dst_path = find_from_path(dst.substr(0, dst.rfind('/')));
-            dst_filename =  dst.substr(dst.rfind('/')+1);
-            if (dst_path == FAIL) 
-            {
-                std::cerr << "cd: Failed to find directory: " << dst.substr(0, dst.rfind('/')) << std::endl;
-                return FAIL;
-            }
-        }
-
+            result = "Initialize success!\n";
     }
-    
-    
-    //处理src
-    if(src.rfind('/') == -1)
-    {
-        src_file_name = src;
-        src_path = user_->current_dir_;
+    else if(tokens[0] == "ls"){
+        if(tokens.size() > 2)
+            result = ls(tokens[1]);
+        else
+            result = ls("");
     }
-    else
-    {
-        src_file_name =  src.substr(src.rfind('/')+1);
-        src_path =  find_from_path(src.substr(0, src.rfind('/')));
+    else if(tokens[0] == "cd"){
+        if(changeDir(tokens[1]) != FAIL)
+            result = "cd : success!\n";
     }
-    
-    src_ino = inodes[src_path].delete_file_entry(src);
-
-    if(dst_filename == "")
-    {
-        dst_filename = src_file_name;
+    else if(tokens[0] == "mkdir"){
+        if(createDir(user_[uid_].current_dir_,tokens[1]) != FAIL)
+            result = "mkdir : success!\n";
     }
-
-
-    dst_ino = inodes[dst_path].create_file(dst_filename,src_is_dir);
-    inodes[dst_ino].copy_from(inodes[src_ino]);
-    
-    return 0;
-
-}*/
+    else if(tokens[0] == "cat"){
+        result = cat(tokens[1]);
+    }
+    else if(tokens[0] == "rm"){
+        if(deleteFile(tokens[1]) != FAIL)
+            result = "rm : success!\n";
+    }
+    else if(tokens[0] == "cp"){
+        if(copyFile(tokens[1], tokens[2]) != FAIL)
+            result = "cp : success!\n";
+    }
+    else if(tokens[0] == "save"){
+        if(saveFile(tokens[1], tokens[2]) != FAIL)
+            result = "save : success!\n";
+    }
+    else if(tokens[0] == "export"){
+        if(exportFile(tokens[1], tokens[2]) != FAIL)
+            result = "export : success!\n";
+    }
+    else if(tokens[0] == "mv"){
+         if(moveFile(tokens[1], tokens[2]) != FAIL)
+            result = "move : success!\n";
+    }
+    else {
+        result = "Invalid command!\n";
+    }
+    return result;
+}
