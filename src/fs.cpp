@@ -483,7 +483,7 @@ string FileSystem::cat(const string& path) {
     string str;
     str.resize(inode.d_size+1);
     inode.read_at(0, str.data(), inode.d_size);
-    
+    inode.d_atime = get_cur_time();
     oss << str << endl;
     return oss.str();
 }
@@ -544,7 +544,6 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     // 复制inode和数据
     int new_ino = inodes[dst_dir].create_file(dst.substr(dst.rfind('/')+1), false);
     inodes[new_ino].copy_from(inodes[src_ino]);
-
     return 0;
 }
 
