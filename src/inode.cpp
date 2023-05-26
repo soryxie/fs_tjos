@@ -375,7 +375,7 @@ int Inode::delete_file_entry(const string& filename) {
     d_size -= ENTRY_SIZE;                       // 目录文件收缩
 
     if (d_size % BLOCK_SIZE == 0) {             // 需要弹出最后一块物理块
-        push_back_block();
+        pop_back_block();
     }
 
     return ino;
@@ -416,6 +416,23 @@ int Inode::copy_from(Inode &src) {
                           .writable_cache(new_blkno)
                           .data();
         memcpy(new_buf, src_buf, BLOCK_SIZE);
+    }
+
+    d_mode = src.d_mode;
+    d_size = src.d_size;
+    /* TODO change time
+    d_mtime = src.d_mtime;
+    d_atime = src.d_atime;
+    d_ctime = src.d_ctime;
+    */
+    return 0;
+}
+
+int Inode::move_from(Inode &src) {
+    /* 复制物理块号 */
+    for(int i=0; i<10; i++) {
+        d_addr[i] = src.d_addr[i];
+        src.d_addr[i] = 0;
     }
 
     d_mode = src.d_mode;

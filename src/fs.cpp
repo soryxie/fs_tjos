@@ -547,7 +547,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     return 0;
 }
 
- int FileSystem::moveFile(const std::string& src, const std::string& dst) {
+int FileSystem::moveFile(const std::string& src, const std::string& dst) {
     int src_ino = find_from_path(src);
     if(src_ino == FAIL) {
         cerr << "mv: cannot move '" << src << "': No such file or directory" << endl;
@@ -605,7 +605,7 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     //cout << dst_filename << endl;
     dst_ino = inodes[dst_dir].create_file(dst_filename,src_is_dir);
     //把src的信息复制过来
-    inodes[dst_ino].copy_from(inodes[src_ino]);
+    inodes[dst_ino].move_from(inodes[src_ino]);
 
     return 0;
 }
@@ -627,9 +627,9 @@ string FileSystem::pCommand(int uid, string& command) {
     if(tokens[0] == "init"){
         //if(initialize_from_external_directory(tokens[1]) == false) {
         if(initialize_from_external_directory("test_folder") == false)
-            result = "Initialize failed!\n";
+            result = "Initialize failed!";
         else
-            result = "Initialize success!\n";
+            result = "Initialize success!";
     }
     else if(tokens[0] == "ls"){
         if(tokens.size() > 2)
@@ -639,37 +639,37 @@ string FileSystem::pCommand(int uid, string& command) {
     }
     else if(tokens[0] == "cd"){
         if(changeDir(tokens[1]) != FAIL)
-            result = "cd : success!\n";
+            result = "cd : success!";
     }
     else if(tokens[0] == "mkdir"){
         if(createDir(user_[uid_].current_dir_,tokens[1]) != FAIL)
-            result = "mkdir : success!\n";
+            result = "mkdir : success!";
     }
     else if(tokens[0] == "cat"){
         result = cat(tokens[1]);
     }
     else if(tokens[0] == "rm"){
         if(deleteFile(tokens[1]) != FAIL)
-            result = "rm : success!\n";
+            result = "rm : success!";
     }
     else if(tokens[0] == "cp"){
         if(copyFile(tokens[1], tokens[2]) != FAIL)
-            result = "cp : success!\n";
+            result = "cp : success!";
     }
     else if(tokens[0] == "save"){
         if(saveFile(tokens[1], tokens[2]) != FAIL)
-            result = "save : success!\n";
+            result = "save : success!";
     }
     else if(tokens[0] == "export"){
         if(exportFile(tokens[1], tokens[2]) != FAIL)
-            result = "export : success!\n";
+            result = "export : success!";
     }
     else if(tokens[0] == "mv"){
          if(moveFile(tokens[1], tokens[2]) != FAIL)
-            result = "move : success!\n";
+            result = "move : success!";
     }
     else {
-        result = "Invalid command!\n";
+        result = "Invalid command!";
     }
     return result;
 }
