@@ -483,7 +483,7 @@ string FileSystem::cat(const string& path) {
     string str;
     str.resize(inode.d_size+1);
     inode.read_at(0, str.data(), inode.d_size);
-    
+    inode.d_atime = get_cur_time();
     oss << str << endl;
     return oss.str();
 }
@@ -544,7 +544,6 @@ int FileSystem::copyFile(const string& src, const string& dst) {
     // 复制inode和数据
     int new_ino = inodes[dst_dir].create_file(dst.substr(dst.rfind('/')+1), false);
     inodes[new_ino].copy_from(inodes[src_ino]);
-
     return 0;
 }
 
@@ -562,8 +561,7 @@ int FileSystem::moveFile(const std::string& src, const std::string& dst) {
     }
 
     int dst_dir = -1;
-    if(dst.empty())
-    {
+    if(dst.empty()) {
         cerr << "mv: insufficent args" << endl;
         return FAIL;
     }
@@ -576,8 +574,7 @@ int FileSystem::moveFile(const std::string& src, const std::string& dst) {
         else 
         dst_dir = find_from_path(dst.substr(0, dst.rfind('/')));
 
-        if(dst_dir == FAIL)
-        {
+        if(dst_dir == FAIL) {
             cerr << "mv: cannot move to '" << dst.substr(0, dst.rfind('/')) << "': No such directory" << endl;
             return FAIL;
         }
@@ -585,16 +582,13 @@ int FileSystem::moveFile(const std::string& src, const std::string& dst) {
         dst_filename =  dst.substr(dst.rfind('/')+1);
 
     }
-    else
-    {
-        if(src_ino == dst_ino)
-        {
+    else {
+        if(src_ino == dst_ino) {
             cout << "mv: you are wasting time finding bugs" << endl;
             return 0;
         }
         bool dst_is_file = inodes[dst_ino].d_mode & Inode::FileType::RegularFile;
-        if(dst_is_file)
-        {
+        if(dst_is_file) {
             std::cerr << "mv: '"<< dst <<"is a file, can not move dir to file" << std::endl;
             return FAIL;
         }

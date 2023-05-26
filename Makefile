@@ -25,7 +25,7 @@ client: $(CLIENT_OBJS)
 	rm -f ./src/*.o
 
 server: $(SERVER_OBJS)
-	$(CC) $(SERVER_OBJS) -o server
+	$(CC) -pthread $(SERVER_OBJS) -o server
 	rm -f ./src/*.o	
 
 %.o: %.cpp $(DEPS)
